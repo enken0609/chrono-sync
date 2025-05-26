@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { SITE_CONFIG } from '@/lib/constants';
 
@@ -36,17 +37,19 @@ export default function Header(): JSX.Element {
           <div className="flex items-center">
             <Link href="/" className="flex items-center" onClick={closeMobileMenu}>
               <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-brand-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">CS</span>
-                </div>
+                <Image
+                  src="/images/logos/logo-chronosync.png"
+                  alt="ChronoSync"
+                  width={200}
+                  height={50}
+                  priority
+                  className="h-10 w-auto"
+                />
               </div>
               <div className="ml-3">
                 <h1 className="text-xl font-bold text-gray-900">
-                  {SITE_CONFIG.name}
+                  ChronoSync
                 </h1>
-                <p className="text-xs text-gray-500 hidden sm:block">
-                  リアルタイム速報システム
-                </p>
               </div>
             </Link>
           </div>

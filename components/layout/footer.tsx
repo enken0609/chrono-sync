@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { SITE_CONFIG } from '@/lib/constants';
 
 /**
@@ -14,12 +15,18 @@ export default function Footer(): JSX.Element {
           {/* ブランド情報 */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-brand-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CS</span>
+              <Image
+                src="/images/logos/logo-chronosync.png"
+                alt="ChronoSync"
+                width={160}
+                height={40}
+                className="h-8 w-auto"
+              />
+              <div className="ml-3">
+                <h2 className="text-lg font-bold text-gray-900">
+                  ChronoSync
+                </h2>
               </div>
-              <span className="ml-2 text-lg font-bold text-gray-900">
-                {SITE_CONFIG.name}
-              </span>
             </div>
             <p className="mt-4 text-sm text-gray-600 max-w-md">
               {SITE_CONFIG.description}

@@ -2,6 +2,7 @@ import React from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import useSWR from 'swr';
 import Button from '@/components/common/button';
 import LoadingSpinner from '@/components/common/loading-spinner';
@@ -59,14 +60,25 @@ const AdminDashboardPage: NextPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
-                <div className="h-8 w-8 bg-brand-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">CS</span>
-                </div>
-                <div className="ml-3">
-                  <h1 className="text-lg font-semibold text-gray-900">
-                    {SITE_CONFIG.name} 管理画面
-                  </h1>
-                </div>
+                <Link href="/admin/dashboard" className="flex items-center">
+                  <Image
+                    src="/images/logos/logo-chronosync.png"
+                    alt="ChronoSync"
+                    width={160}
+                    height={40}
+                    className="h-8 w-auto"
+                  />
+                  <div className="ml-3">
+                    <div className="flex items-center">
+                      <h1 className="text-lg font-bold text-gray-900">
+                        ChronoSync
+                      </h1>
+                      <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        管理画面
+                      </span>
+                    </div>
+                  </div>
+                </Link>
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
@@ -181,7 +193,7 @@ const AdminDashboardPage: NextPage = () => {
             </div>
 
             {/* クイックアクション */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className="card">
                 <div className="card-header">
                   <h3 className="text-lg font-medium text-gray-900">
@@ -203,27 +215,6 @@ const AdminDashboardPage: NextPage = () => {
                         新規作成
                       </Button>
                     </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    API テスト
-                  </h3>
-                </div>
-                <div className="card-body">
-                  <p className="text-gray-600 mb-4">
-                    WebScorer API接続とキャッシュ機能をテストします
-                  </p>
-                  <div className="flex gap-2">
-                    <Link href="/test/race-results">
-                      <Button size="sm" variant="primary">
-                        デモページ
-                      </Button>
-                    </Link>
-                    <ApiTestButton />
                   </div>
                 </div>
               </div>
@@ -273,45 +264,6 @@ function LogoutButton(): JSX.Element {
     <Button size="sm" variant="secondary" onClick={handleLogout}>
       ログアウト
     </Button>
-  );
-}
-
-/**
- * APIテストボタンコンポーネント
- */
-function ApiTestButton(): JSX.Element {
-  const [testing, setTesting] = React.useState(false);
-  const [result, setResult] = React.useState<string | null>(null);
-
-  const handleTest = async () => {
-    setTesting(true);
-    setResult(null);
-
-    try {
-      const response = await fetch('/api/races/371034/results');
-      const data = await response.json();
-      
-      if (data.success) {
-        setResult('✅ API接続成功');
-      } else {
-        setResult('❌ API接続失敗: ' + data.error);
-      }
-    } catch (error) {
-      setResult('❌ 接続エラー: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  return (
-    <div>
-      <Button size="sm" variant="secondary" onClick={handleTest} loading={testing}>
-        API テスト
-      </Button>
-      {result && (
-        <p className="mt-2 text-xs text-gray-600">{result}</p>
-      )}
-    </div>
   );
 }
 

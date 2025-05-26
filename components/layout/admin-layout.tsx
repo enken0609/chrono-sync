@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/use-auth';
 import Button from '@/components/common/button';
@@ -71,12 +72,23 @@ export default function AdminLayout({
             {/* ロゴ・タイトル */}
             <div className="flex items-center">
               <Link href="/admin/dashboard" className="flex items-center">
-                <div className="text-2xl font-bold text-brand-600">
-                  ChronoSync
+                <Image
+                  src="/images/logos/logo-chronosync.png"
+                  alt="ChronoSync"
+                  width={160}
+                  height={40}
+                  className="h-8 w-auto"
+                />
+                <div className="ml-3">
+                  <div className="flex items-center">
+                    <h1 className="text-lg font-bold text-gray-900">
+                      ChronoSync
+                    </h1>
+                    <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      管理画面
+                    </span>
+                  </div>
                 </div>
-                <span className="ml-2 text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  管理画面
-                </span>
               </Link>
             </div>
 
