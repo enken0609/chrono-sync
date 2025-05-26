@@ -11,7 +11,7 @@ import ErrorMessage from '@/components/common/error-message';
 import Button from '@/components/common/button';
 import { Event, Race } from '@/types';
 import { fetcher } from '@/lib/api';
-import { SPORT_LABELS, SITE_CONFIG } from '@/lib/constants';
+import { SITE_CONFIG } from '@/lib/constants';
 
 interface EventDetailPageProps {
   eventId: string;
