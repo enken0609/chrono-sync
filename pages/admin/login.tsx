@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Head from 'next/head';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import Button from '@/components/common/button';
 import ErrorMessage from '@/components/common/error-message';
@@ -57,17 +58,21 @@ const AdminLoginPage: NextPage = () => {
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           {/* ロゴ・ブランド */}
-          <div className="flex justify-center">
-            <div className="h-12 w-12 bg-brand-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">CS</span>
-            </div>
+          <div className="text-center">
+            <Image
+              src="/images/logos/logo-chronosync.png"
+              alt="ChronoSync"
+              width={200}
+              height={50}
+              className="mx-auto h-12 w-auto"
+            />
+            <h2 className="mt-4 text-center text-3xl font-bold text-gray-900">
+              管理画面ログイン
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              {SITE_CONFIG.name} 管理システム
+            </p>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            管理画面ログイン
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {SITE_CONFIG.name} 管理システム
-          </p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -135,31 +140,6 @@ const AdminLoginPage: NextPage = () => {
                 </Button>
               </div>
             </form>
-
-            {/* 開発情報 */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="bg-blue-50 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800">
-                      開発環境
-                    </h3>
-                    <div className="mt-2 text-sm text-blue-700">
-                      <p>
-                        認証情報は環境変数（.env.local）で設定されています。
-                        <br />
-                        デフォルト: chronosync-admin / ChronoSync2024!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* フッターリンク */}
             <div className="mt-6 text-center">
