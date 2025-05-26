@@ -10,7 +10,7 @@ import LoadingSpinner from '@/components/common/loading-spinner';
 import ErrorMessage from '@/components/common/error-message';
 import Button from '@/components/common/button';
 import RaceResultsTable from '@/components/race/race-results-table';
-import { useRaceResults } from '@/hooks/use-race-results';
+import { useRaceResults, RaceResultsResponse } from '@/hooks/use-race-results';
 import { Event, Race } from '@/types';
 import { fetcher } from '@/lib/api';
 import { SITE_CONFIG } from '@/lib/constants';
@@ -43,12 +43,18 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
     }
   );
 
-  // レース情報取得（管理画面で設定されたレース名を取得）
-  const { data: raceData } = useSWR<Race>(
-    `/api/admin/races/${raceId}`,
+  // レース情報を取得
+  const { 
+    data: raceData, 
+    error: raceError 
+  } = useSWR<Race>(
+    `/api/races/${raceId}/info`,
     fetcher,
     {
       fallbackData: initialRaceData,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000, // 30秒間キャッシュ
     }
   );
 
@@ -362,36 +368,13 @@ export const getStaticProps: GetStaticProps<RaceResultPageProps> = async ({ para
     };
   }
 
-  try {
-    // レースデータを取得（管理画面で設定されたレース名を取得するため）
-    const raceResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/admin/races/${raceId}`);
-    let initialRaceData: Race | undefined;
-    
-    if (raceResponse.ok) {
-      const raceData = await raceResponse.json();
-      if (raceData.success) {
-        initialRaceData = raceData.data;
-      }
-    }
-
-    return {
-      props: {
-        eventId,
-        raceId,
-        initialRaceData,
-      },
-      revalidate: 60, // 1分間キャッシュ（結果は頻繁に更新される可能性があるため短め）
-    };
-  } catch (error) {
-    console.error('Failed to fetch race data:', error);
-    return {
-      props: {
-        eventId,
-        raceId,
-      },
-      revalidate: 30, // エラー時は30秒間キャッシュ
-    };
-  }
+  return {
+    props: {
+      eventId,
+      raceId,
+    },
+    revalidate: 60, // 1分間キャッシュ
+  };
 };
 
 export default RaceResultPage; 

@@ -2,10 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { 
   createSuccessResponse, 
   handleApiError,
+  getRequiredQueryParam,
   validateRequired,
   createTimestamp
 } from '@/lib/api';
-import { requireAuth } from '@/lib/auth';
+import { requireAuthCheck } from '@/lib/auth';
 import { kv, kvJson } from '@/lib/kv';
 import { KV_KEYS } from '@/lib/constants';
 import { Event, Race, RaceFormData } from '@/types';
@@ -23,6 +24,9 @@ export default async function handler(
       return res.status(405).json(handleApiError(new Error('Method not allowed')));
     }
 
+    // 認証チェック
+    await requireAuthCheck(req, res);
+
     return await handleCreateRace(req, res);
   } catch (error) {
     console.error('Race creation API error:', error);
@@ -37,9 +41,6 @@ async function handleCreateRace(
   req: NextApiRequest,
   res: NextApiResponse
 ): Promise<void> {
-  // 認証チェック
-  await requireAuth(req, res);
-
   try {
     const { eventId } = req.query;
     
@@ -76,7 +77,6 @@ async function handleCreateRace(
       category: formData.category,
       webScorerRaceId: formData.webScorerRaceId || undefined,
       status: 'preparing',
-      sportType: 'trail-running', // デフォルト値
       createdAt: timestamp,
       updatedAt: timestamp,
     };
