@@ -1,14 +1,3 @@
-// スポーツ競技種別
-export type SportType = 
-  | 'trail-running' 
-  | 'sky-running' 
-  | 'ultra-running' 
-  | 'mountain-running' 
-  | 'road-running'
-  | 'triathlon'
-  | 'cycling'
-  | 'other';
-
 // イベント（大会）
 export interface Event {
   id: string;
@@ -28,7 +17,6 @@ export interface Race {
   category: string;
   webScorerRaceId?: string;
   status: 'preparing' | 'active' | 'completed';
-  sportType: SportType;
   createdAt: string;
   updatedAt: string;
 }

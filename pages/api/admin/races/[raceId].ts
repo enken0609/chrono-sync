@@ -6,7 +6,7 @@ import {
   validateRequired,
   createTimestamp
 } from '@/lib/api';
-import { requireAuth } from '@/lib/auth';
+import { requireAuthCheck } from '@/lib/auth';
 import { kv, kvJson } from '@/lib/kv';
 import { KV_KEYS } from '@/lib/constants';
 import { Race, RaceFormData } from '@/types';
@@ -23,7 +23,7 @@ export default async function handler(
   res: NextApiResponse
 ): Promise<void> {
   // 認証チェック
-  await requireAuth(req, res);
+  await requireAuthCheck(req, res);
 
   try {
     const raceId = getRequiredQueryParam(req.query, 'raceId');
@@ -80,9 +80,6 @@ async function handleCreateRace(
       category: formData.category,
       webScorerRaceId: formData.webScorerRaceId || undefined,
       status: 'preparing',
-      startTime: formData.startTime || undefined,
-      distance: formData.distance || undefined,
-      elevation: formData.elevation || undefined,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -151,9 +148,6 @@ async function handleUpdateRace(
       name: formData.name,
       category: formData.category,
       webScorerRaceId: formData.webScorerRaceId || undefined,
-      startTime: formData.startTime || undefined,
-      distance: formData.distance || undefined,
-      elevation: formData.elevation || undefined,
       updatedAt: createTimestamp(),
     };
 

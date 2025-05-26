@@ -1,5 +1,3 @@
-import { SportType } from '@/types';
-
 /**
  * システム全体で使用する定数定義
  */
@@ -25,21 +23,6 @@ export const COLORS = {
     completed: '#6B7280',
   },
 } as const;
-
-// スポーツ種別の表示名
-export const SPORT_LABELS: Record<SportType, string> = {
-  'trail-running': 'トレイルランニング',
-  'sky-running': 'スカイランニング',
-  'ultra-running': 'ウルトラランニング',
-  'mountain-running': '山岳競技',
-  'road-running': 'ロードランニング',
-  'triathlon': 'トライアスロン',
-  'cycling': 'サイクリング',
-  'other': 'その他',
-} as const;
-
-// 後方互換性のためのエイリアス
-export const SPORT_TYPES = SPORT_LABELS;
 
 // レースステータスの表示名
 export const RACE_STATUS_LABELS = {
