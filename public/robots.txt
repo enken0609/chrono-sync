@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# ChronoSync - 内部使用システム
+# 検索エンジンによるインデックスを禁止 

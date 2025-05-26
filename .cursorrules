@@ -1,0 +1,442 @@
+# ChronoSync - Cursor Project Rules (Docker対応版)
+
+## プロジェクト概要
+- 汎用レース速報システム "ChronoSync"
+- リアルタイム結果同期プラットフォーム
+- 複数競技・主催者対応の速報結果表示サイト + 管理システム
+- Next.js + TypeScript + Vercel KV構成
+- Docker環境でのローカル開発
+- オンデマンドキャッシュ方式（自動更新なし）
+- 対象競技: Trail Running, Sky Running, Ultra Running, Mountain Running, Road Running, その他ランニング・耐久競技
+
+## 開発環境
+- **ローカル開発**: Docker Compose必須
+- **本番環境**: Vercel + Vercel KV
+- **Node.js**: 18.x LTS
+- **パッケージマネージャー**: npm
+
+## 技術スタック制約
+- **フレームワーク**: Next.js 14+ (Pages Router必須、App Router使用禁止)
+- **言語**: TypeScript必須
+- **スタイリング**: Tailwind CSS必須
+- **データベース**: 本番 Vercel KV、ローカル Redis（Docker）
+- **認証**: シンプルID/パスワード認証（OAuth禁止）
+- **状態管理**: SWR（Redux/Zustand等禁止）
+
+## ディレクトリ構造（必須）
+```
+project-root/
+├── docker-compose.yml
+├── Dockerfile
+├── .dockerignore
+├── .cursorrules
+├── README.md
+├── next.config.js
+├── tailwind.config.js
+├── tsconfig.json
+├── package.json
+├── .env.local.example
+├── .env.local (Git除外)
+├── pages/
+│   ├── index.tsx (トップページ)
+│   ├── events/
+│   │   ├── index.tsx (大会一覧)
+│   │   ├── [eventId]/
+│   │   │   ├── index.tsx (大会詳細)
+│   │   │   └── races/
+│   │   │       └── [raceId].tsx (レース結果)
+│   ├── admin/
+│   │   ├── login.tsx
+│   │   ├── dashboard.tsx
+│   │   ├── events/
+│   │   │   ├── index.tsx
+│   │   │   └── [eventId]/
+│   │   │       └── races.tsx
+│   └── api/
+│       ├── races/
+│       │   └── [raceId]/
+│       │       └── results.ts
+│       ├── events/
+│       │   ├── index.ts
+│       │   └── [eventId].ts
+│       ├── auth/
+│       │   ├── login.ts
+│       │   └── check.ts
+│       └── admin/
+│           ├── events/
+│           └── races/
+├── components/
+│   ├── layout/
+│   ├── race/
+│   ├── admin/
+│   └── common/
+├── lib/
+│   ├── kv.ts (KV接続設定)
+│   ├── auth.ts (認証ユーティリティ)
+│   ├── api.ts (API共通処理)
+│   └── constants.ts
+├── types/
+│   └── index.ts
+├── hooks/
+│   └── use-race-results.ts
+└── styles/
+    └── globals.css
+```
+
+## Docker設定要件
+
+### 1. docker-compose.yml必須構成
+```yaml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
+```
+
+### 2. Dockerfile必須構成
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+```
+
+### 3. .dockerignore必須項目
+```
+node_modules
+.next
+.git
+.env.local
+README.md
+Dockerfile
+docker-compose.yml
+```
+
+## 環境変数設定
+
+### 1. .env.local.example（必須作成）
+```bash
+# システム設定
+NEXT_PUBLIC_SITE_NAME=ChronoSync
+NEXT_PUBLIC_SITE_DESCRIPTION=Real-time race results synchronization platform
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# 認証設定
+ADMIN_USERNAME=chronosync-admin
+ADMIN_PASSWORD=ChronoSync2024!
+JWT_SECRET=your-jwt-secret-key-here
+
+# KV設定（ローカル開発用）
+KV_URL=redis://localhost:6379
+NODE_ENV=development
+
+# 本番用（コメントアウト）
+# KV_REST_API_URL=
+# KV_REST_API_TOKEN=
+# KV_REST_API_READ_ONLY_TOKEN=
+
+# WebScorer API
+WEBSCORER_API_KEY=your-webscorer-api-key
+
+# カスタマイズ設定
+NEXT_PUBLIC_DEFAULT_ORGANIZER=Race Organization
+NEXT_PUBLIC_SUPPORT_EMAIL=support@chrono-sync.com
+NEXT_PUBLIC_BRAND_COLOR=#6366F1
+NEXT_PUBLIC_ACCENT_COLOR=#8B5CF6
+```
+
+### 2. KV接続抽象化必須
+```typescript
+// lib/kv.ts
+// ローカル（Redis）と本番（Vercel KV）の接続を統一
+```
+
+## コーディング規約
+
+### 1. Next.js Pages Router（App Router禁止）
+- pages/ディレクトリ構造必須
+- getStaticProps/getStaticPathsでISR実装
+- getServerSidePropsは原則禁止（ISRを優先）
+- API RoutesはPages Router形式
+
+### 2. TypeScript必須ルール
+- strict mode必須
+- anyの使用禁止（unknownを使用）
+- interfaceを優先（typeは特別な場合のみ）
+- 明示的な戻り値の型指定必須
+- すべての関数にJSDocコメント
+
+### 3. ファイル・命名規約
+- **kebab-case**: ファイル名、ディレクトリ名、CSS クラス
+- **PascalCase**: React コンポーネント、TypeScript interface/type
+- **camelCase**: 変数、関数名、プロパティ
+- **UPPER_SNAKE_CASE**: 定数、環境変数
+
+### 4. import順序（必須）
+```typescript
+// 1. React関連
+import React, { useState, useEffect } from 'react';
+import { GetStaticProps, NextPage } from 'next';
+import { useRouter } from 'next/router';
+
+// 2. 外部ライブラリ
+import useSWR from 'swr';
+
+// 3. 内部モジュール（@/エイリアス使用）
+import { Race, Event } from '@/types';
+import { kv } from '@/lib/kv';
+import { authCheck } from '@/lib/auth';
+
+// 4. 相対パス
+import RaceTable from '../components/race-table';
+```
+
+## 認証システム仕様
+
+### 1. シンプルID/パスワード認証（OAuth禁止）
+```typescript
+// 認証フロー
+1. 環境変数の認証情報と完全一致チェック
+2. 一致時にJWTトークン生成（7日間有効）
+3. HttpOnly Cookieでトークン保存
+4. 管理画面アクセス時にトークン検証
+```
+
+### 2. 必須実装項目
+- ログインページ（/admin/login）
+- ログイン API（/api/auth/login）
+- 認証チェック API（/api/auth/check）
+- 認証ミドルウェア（管理画面API用）
+- ログアウト機能
+
+### 3. セッション管理
+- JWT + HttpOnly Cookie
+- 有効期限：7日間
+- 自動延長なし（明示的なログインが必要）
+
+## データアクセスパターン
+
+### 1. KV操作統一パターン
+```typescript
+// 必須エラーハンドリング
+try {
+  await kv.set(`race:${raceId}:results`, JSON.stringify(data), { ex: 180 });
+} catch (error) {
+  console.error('KV保存エラー:', error);
+  throw new Error('データの保存に失敗しました');
+}
+```
+
+### 2. オンデマンドキャッシュパターン（厳守）
+```typescript
+// 1. キャッシュ確認（3分間有効）
+// 2. 有効なら即返却（API呼び出しなし）
+// 3. 期限切れならWebScorer API呼び出し
+// 4. 新データをKV保存（TTL: 180秒）
+// 5. クライアントに返却
+```
+
+### 3. WebScorer API呼び出し仕様
+- fetch使用必須（axios等禁止）
+- タイムアウト：10秒
+- リトライ：3回まで
+- エラー時は古いキャッシュをフォールバック
+
+## UI/UXガイドライン
+
+### 1. Tailwind CSS必須ルール
+- インラインクラスのみ（カスタムCSS禁止）
+- レスポンシブ必須（sm:, md:, lg:接頭辞）
+- モバイルファーストアプローチ
+- ダークモード考慮（dark:接頭辞使用推奨）
+
+### 2. コンポーネント設計原則
+- 単一責任の原則
+- props型定義必須
+- children propsの型安全性確保
+- デフォルトprops使用推奨
+
+### 3. 必須UI状態
+- **ローディング**: 全データ取得でスピナー表示
+- **エラー**: 明確なメッセージ + 再試行ボタン
+- **空状態**: データがない場合の適切なメッセージ
+- **オフライン**: 接続エラー時の案内
+
+## API設計ルール
+
+### 1. レスポンス形式統一（厳守）
+```typescript
+// 成功レスポンス
+interface SuccessResponse<T> {
+  success: true;
+  data: T;
+  lastUpdated?: string;
+  cacheHit?: boolean;
+  cacheAge?: number;
+}
+
+// エラーレスポンス
+interface ErrorResponse {
+  success: false;
+  error: string;
+  details?: string;
+}
+```
+
+### 2. HTTPステータスコード
+- **200**: 成功
+- **400**: バリデーションエラー
+- **401**: 認証エラー（ログイン必要）
+- **403**: 権限エラー
+- **404**: リソース未発見
+- **429**: レート制限
+- **500**: サーバーエラー
+
+### 3. エラーハンドリング必須パターン
+```typescript
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    // メイン処理
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'サーバーエラーが発生しました'
+    });
+  }
+}
+```
+
+## データベース設計（KV）
+
+### 1. キー命名規則（厳守）
+```typescript
+// 管理データ（永続保存）
+"events:list"                    // Set<eventId>
+"event:{eventId}:info"           // Event object
+"event:{eventId}:races"          // Set<raceId>
+"race:{raceId}:config"           // Race config object
+
+// 速報データ（TTL付き）
+"race:{raceId}:results"          // TTL: 180秒
+"race:{raceId}:timestamp"        // TTL: 180秒
+"race:{raceId}:archive"          // TTL: 30日
+```
+
+### 2. データ型定義必須
+```typescript
+// types/index.ts で明確に定義
+export interface Event {
+  id: string;
+  name: string;
+  date: string; // YYYY-MM-DD
+  description?: string;
+  status: 'upcoming' | 'active' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## 禁止事項
+
+### 1. 技術的禁止事項
+- App Router使用
+- useClient指定の過度な使用
+- サーバーコンポーネント
+- 外部状態管理ライブラリ（Redux, Zustand等）
+- CSS-in-JS（styled-components, emotion等）
+- yarn（npmのみ使用）
+
+### 2. セキュリティ禁止事項
+- 認証情報のクライアント露出
+- SQLインジェクション脆弱パターン（KVでも入力検証必須）
+- XSS脆弱性（適切なエスケープ必須）
+- CSRF攻撃対象パターン
+
+### 3. パフォーマンス禁止事項
+- useEffect内での直接API呼び出し（SWR必須）
+- 無限ループの可能性があるuseEffect
+- メモリリーク原因となるイベントリスナー
+
+## 必須実装パターン
+
+### 1. カスタムフック
+```typescript
+// hooks/use-race-results.ts
+export function useRaceResults(raceId: string | null) {
+  return useSWR(
+    raceId ? `/api/races/${raceId}/results` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 5000
+    }
+  );
+}
+```
+
+### 2. 認証チェックパターン
+```typescript
+// lib/auth.ts
+export async function requireAuth(req: NextApiRequest, res: NextApiResponse) {
+  // JWT検証ロジック
+}
+```
+
+## パフォーマンス要件
+- **初期表示**: 1秒以内
+- **データ更新**: 3秒以内
+- **Lighthouse Performance**: 90点以上
+- **Docker起動時間**: 30秒以内
+
+## 開発フロー
+
+### 1. ローカル開発起動
+```bash
+# 初回セットアップ
+cp .env.local.example .env.local
+# .env.localを編集
+docker-compose up --build
+
+# 日常開発
+docker-compose up
+```
+
+### 2. デバッグ
+- Docker内でのログ確認
+- Redis CLIでのデータ確認
+- Next.js開発サーバーのホットリロード
+
+### 3. 型チェック・リント
+```bash
+# コンテナ内で実行
+npm run type-check
+npm run lint
+npm run build
+```
+
+このルールに従って、Docker環境での開発に最適化されたコードを生成してください。
+特にローカル開発とVercel本番環境の差異を適切に抽象化し、環境に依存しない堅牢なコードを作成してください。
