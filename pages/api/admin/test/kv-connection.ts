@@ -106,7 +106,7 @@ async function handleKvConnectionTest(
       await kvJson.set(`${testKey}:json`, testJsonValue);
       result.testResults.jsonSet = true;
       
-      const getJsonValue = await kvJson.get(`${testKey}:json`);
+      const getJsonValue = await kvJson.get<{ test: boolean; timestamp: number }>(`${testKey}:json`);
       result.testResults.jsonGet = getJsonValue?.test === true;
     } catch (error) {
       console.error('JSON set/get test failed:', error);
