@@ -277,7 +277,12 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
               </div>
             </div>
           </div>
-
+              {/* 注意書き */}
+              <div className="mt-2 mb-4">
+                <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-md border border-amber-200">
+                  ⚠️ 速報のため順位が変動する場合があります
+                </p>
+              </div>
           {/* レース速報 */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200">
@@ -294,6 +299,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
                   🔄 更新
                 </Button>
               </div>
+
             </div>
 
             <div className="p-4 sm:p-6">
