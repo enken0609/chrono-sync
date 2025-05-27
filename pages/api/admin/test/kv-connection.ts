@@ -6,6 +6,7 @@ import {
 } from '@/lib/api';
 import { requireAuthCheck } from '@/lib/auth';
 import { kv, kvJson } from '@/lib/kv';
+import { kv as vercelKv } from '@vercel/kv';
 
 interface KvTestResult {
   environment: string;
@@ -24,6 +25,8 @@ interface KvTestResult {
     hasKvUrl: boolean;
     hasKvRestApiUrl: boolean;
     hasKvRestApiToken: boolean;
+    redisUrlPrefix?: string;
+    kvRestApiUrlPrefix?: string;
   };
   errorDetails?: string;
   timestamp: string;
@@ -84,6 +87,8 @@ async function handleKvConnectionTest(
       hasKvUrl: !!process.env.KV_URL,
       hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
       hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
+      redisUrlPrefix: process.env.REDIS_URL ? process.env.REDIS_URL.split(':')[0] : undefined,
+      kvRestApiUrlPrefix: process.env.KV_REST_API_URL ? process.env.KV_REST_API_URL.split('/')[2] : undefined,
     },
     timestamp: createTimestamp(),
   };
@@ -91,14 +96,34 @@ async function handleKvConnectionTest(
   try {
     // 1. 基本的なset/get操作テスト
     try {
+      console.log('Testing basic set operation...');
       await kv.set(testKey, testValue);
       result.testResults.basicSet = true;
+      console.log('Basic set operation successful');
       
+      console.log('Testing basic get operation...');
       const getValue = await kv.get(testKey);
       result.testResults.basicGet = getValue === testValue;
+      console.log('Basic get operation result:', getValue);
     } catch (error) {
       console.error('Basic set/get test failed:', error);
-      result.errorDetails = `Basic operations failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      result.errorDetails = `Basic operations failed: ${errorMessage}${errorStack ? ` | Stack: ${errorStack}` : ''}`;
+      
+      // Vercel KVの直接テストも試行
+      try {
+        console.log('Testing direct Vercel KV access...');
+        await vercelKv.set(`direct_${testKey}`, testValue);
+        const directValue = await vercelKv.get(`direct_${testKey}`);
+        console.log('Direct Vercel KV test result:', directValue);
+        result.errorDetails += ` | Direct Vercel KV test: ${directValue === testValue ? 'SUCCESS' : 'FAILED'}`;
+        await vercelKv.del(`direct_${testKey}`);
+      } catch (directError) {
+        console.error('Direct Vercel KV test failed:', directError);
+        const directErrorMessage = directError instanceof Error ? directError.message : 'Unknown error';
+        result.errorDetails += ` | Direct Vercel KV error: ${directErrorMessage}`;
+      }
     }
 
     // 2. JSON操作テスト
