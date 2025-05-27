@@ -197,10 +197,10 @@ const EventDetailPage: NextPage<EventDetailPageProps> = ({ eventId, initialData 
                         <span className="font-medium mr-2">📅 開催日:</span>
                         <span className="truncate">
                           {new Date(eventData.date).toLocaleDateString('ja-JP', {
+                            timeZone: 'Asia/Tokyo',
                             year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            weekday: 'short'
+                            month: 'long',
+                            day: 'numeric'
                           })}
                         </span>
                       </div>
@@ -222,6 +222,8 @@ const EventDetailPage: NextPage<EventDetailPageProps> = ({ eventId, initialData 
                   <div className="flex-shrink-0 text-xs text-gray-500">
                     <p>
                       最終更新: {new Date(eventData.updatedAt).toLocaleDateString('ja-JP', {
+                        timeZone: 'Asia/Tokyo',
+                        year: 'numeric',
                         month: 'short',
                         day: 'numeric'
                       })}

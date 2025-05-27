@@ -193,7 +193,9 @@ const EventsPage: NextPage = () => {
                         <div className="space-y-2 text-sm text-gray-600 mb-4">
                           <div className="flex items-center">
                             <span className="mr-2">📅</span>
-                            <span>{new Date(event.date).toLocaleDateString('ja-JP')}</span>
+                            <span>{new Date(event.date).toLocaleDateString('ja-JP', {
+                              timeZone: 'Asia/Tokyo'
+                            })}</span>
                           </div>
                         </div>
 
