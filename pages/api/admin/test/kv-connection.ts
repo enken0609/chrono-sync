@@ -25,6 +25,7 @@ interface KvTestResult {
     hasKvUrl: boolean;
     hasKvRestApiUrl: boolean;
     hasKvRestApiToken: boolean;
+    hasKvRestApiReadOnlyToken: boolean;
     redisUrlPrefix?: string;
     kvRestApiUrlPrefix?: string;
   };
@@ -71,7 +72,7 @@ async function handleKvConnectionTest(
   const testJsonValue = { test: true, timestamp: Date.now() };
   
   const result: KvTestResult = {
-    environment: process.env.NODE_ENV === 'development' && !process.env.REDIS_URL ? 'local-redis' : 'vercel-kv',
+    environment: process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN ? 'vercel-kv-upstash' : 'local-redis',
     connectionStatus: 'error',
     testResults: {
       basicSet: false,
@@ -87,6 +88,7 @@ async function handleKvConnectionTest(
       hasKvUrl: !!process.env.KV_URL,
       hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
       hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
+      hasKvRestApiReadOnlyToken: !!process.env.KV_REST_API_READONLY_TOKEN,
       redisUrlPrefix: process.env.REDIS_URL ? process.env.REDIS_URL.split(':')[0] : undefined,
       kvRestApiUrlPrefix: process.env.KV_REST_API_URL ? process.env.KV_REST_API_URL.split('/')[2] : undefined,
     },

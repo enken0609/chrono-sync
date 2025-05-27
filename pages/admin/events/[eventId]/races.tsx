@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { GetServerSideProps } from 'next';
+import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
-import Link from 'next/link';
 import { useRequireAuth } from '@/hooks/use-auth';
 import AdminLayout from '@/components/layout/admin-layout';
-import RaceForm from '@/components/admin/race-form';
 import Button from '@/components/common/button';
 import LoadingSpinner from '@/components/common/loading-spinner';
 import ErrorMessage from '@/components/common/error-message';
-import { Event, Race, RaceFormData } from '@/types';
+import RaceForm from '@/components/admin/race-form';
+import { SITE_CONFIG } from '@/lib/constants';
 import { fetcher } from '@/lib/api';
+import { Event, Race, RaceFormData } from '@/types';
+
+interface CacheSettings {
+  raceResultsTtl: number;
+  eventListTtl: number;
+  dashboardStatsTtl: number;
+}
 
 /**
  * 大会別レース管理ページ
@@ -25,9 +33,20 @@ export default function AdminEventRacesPage(): JSX.Element {
   const [refreshingRaces, setRefreshingRaces] = useState<Set<string>>(new Set());
 
   // 大会詳細取得（レース一覧含む）
-  const { data: eventData, error, mutate } = useSWR<Event & { races: Race[] }>(
+  const { data: eventData, error: eventError, mutate: mutateEvent } = useSWR<Event & { races: Race[] }>(
     user && eventId ? `/api/events/${eventId}` : null,
     fetcher
+  );
+
+  // キャッシュ設定取得
+  const { data: cacheSettings } = useSWR<CacheSettings>(
+    '/api/settings/cache',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5分間キャッシュ
+    }
   );
 
   // 認証ローディング中は何も表示しない
@@ -60,7 +79,7 @@ export default function AdminEventRacesPage(): JSX.Element {
         throw new Error('レースの作成に失敗しました');
       }
 
-      await mutate(); // データを再取得
+      await mutateEvent(); // データを再取得
       setShowCreateForm(false);
       alert('レースが作成されました');
     } catch (error) {
@@ -91,7 +110,7 @@ export default function AdminEventRacesPage(): JSX.Element {
         throw new Error('レースの更新に失敗しました');
       }
 
-      await mutate(); // データを再取得
+      await mutateEvent(); // データを再取得
       setEditingRace(null);
       alert('レースが更新されました');
     } catch (error) {
@@ -119,7 +138,7 @@ export default function AdminEventRacesPage(): JSX.Element {
         throw new Error('レースの削除に失敗しました');
       }
 
-      await mutate(); // データを再取得
+      await mutateEvent(); // データを再取得
       alert('レースが削除されました');
     } catch (error) {
       console.error('Delete race error:', error);
@@ -144,7 +163,7 @@ export default function AdminEventRacesPage(): JSX.Element {
         throw new Error('レースステータスの更新に失敗しました');
       }
 
-      await mutate(); // データを再取得
+      await mutateEvent(); // データを再取得
       
       // ステータスに応じたメッセージを表示
       let message = `レースステータスを「${getStatusLabel(newStatus)}」に変更しました`;
@@ -211,7 +230,7 @@ export default function AdminEventRacesPage(): JSX.Element {
   };
 
   /**
-   * ステータス表示名を取得
+   * レースステータスのラベルを取得
    */
   const getStatusLabel = (status: Race['status']): string => {
     switch (status) {
@@ -226,12 +245,30 @@ export default function AdminEventRacesPage(): JSX.Element {
     }
   };
 
-  if (error) {
+  /**
+   * 時間を読みやすい形式にフォーマット
+   */
+  const formatCacheTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}秒`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}分`;
+    } else if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}時間`;
+    } else {
+      const days = Math.floor(seconds / 86400);
+      return `${days}日`;
+    }
+  };
+
+  if (eventError) {
     return (
       <AdminLayout title="レース管理">
         <ErrorMessage 
           message="大会情報の取得に失敗しました" 
-          onRetry={() => mutate()} 
+          onRetry={() => mutateEvent()} 
         />
       </AdminLayout>
     );
@@ -407,7 +444,7 @@ export default function AdminEventRacesPage(): JSX.Element {
                               </div>
                             )}
                             {race.status === 'completed' && (
-                              <div title="進行中に戻すとTTL3分の短期キャッシュになります">
+                              <div title={`進行中に戻すとTTL${cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3分'}の短期キャッシュになります`}>
                                 <Button
                                   variant="warning"
                                   size="sm"

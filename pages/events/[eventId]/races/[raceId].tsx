@@ -22,6 +22,12 @@ interface RaceResultPageProps {
   initialRaceData?: Race;
 }
 
+interface CacheSettings {
+  raceResultsTtl: number;
+  eventListTtl: number;
+  dashboardStatsTtl: number;
+}
+
 /**
  * レース結果表示ページ（フロントエンド用）
  */
@@ -65,6 +71,17 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
     mutate: mutateResults,
     isLoading: resultsLoading 
   } = useRaceResults(raceId);
+
+  // キャッシュ設定取得
+  const { data: cacheSettings } = useSWR<CacheSettings>(
+    '/api/settings/cache',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 300000, // 5分間キャッシュ
+    }
+  );
 
   if (router.isFallback) {
     return (
@@ -117,6 +134,24 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
         return '完了';
       default:
         return '不明';
+    }
+  };
+
+  /**
+   * 時間を読みやすい形式にフォーマット
+   */
+  const formatCacheTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}秒`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}分`;
+    } else if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}時間`;
+    } else {
+      const days = Math.floor(seconds / 86400);
+      return `${days}日`;
     }
   };
 
@@ -268,7 +303,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
                         )}
                         {(raceData || initialRaceData)?.status === 'active' && (
                           <div className="text-xs text-green-600 mt-1">
-                            ⚡ 3分間キャッシュ
+                            ⚡ {cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3分'}キャッシュ
                           </div>
                         )}
                       </div>

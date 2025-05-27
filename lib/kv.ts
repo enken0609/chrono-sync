@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { kv as vercelKv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 import { ChronoSyncError } from '@/types';
 import { ERROR_CODES } from '@/lib/constants';
 
@@ -11,6 +11,9 @@ import { ERROR_CODES } from '@/lib/constants';
 // Redis クライアント（ローカル開発用）
 let redisClient: ReturnType<typeof createClient> | null = null;
 
+// Upstash Redis クライアント（本番環境用）
+let upstashClient: Redis | null = null;
+
 /**
  * ローカル開発用Redisクライアントの初期化
  */
@@ -20,6 +23,7 @@ async function initRedisClient(): Promise<ReturnType<typeof createClient>> {
   }
 
   try {
+    // ローカル開発環境用のRedis接続URL
     // Docker環境では redis:6379、ローカル直接実行では localhost:6379
     const redisUrl = process.env.KV_URL || 'redis://redis:6379';
     
@@ -45,15 +49,43 @@ async function initRedisClient(): Promise<ReturnType<typeof createClient>> {
 }
 
 /**
+ * Upstash Redis クライアントの初期化
+ */
+function initUpstashClient(): Redis {
+  if (upstashClient) {
+    return upstashClient;
+  }
+
+  try {
+    upstashClient = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    });
+
+    console.log('Upstash Redis client initialized successfully');
+    return upstashClient;
+  } catch (error) {
+    console.error('Failed to initialize Upstash Redis client:', error);
+    throw new ChronoSyncError(
+      'データベースへの接続に失敗しました',
+      ERROR_CODES.CACHE_ERROR,
+      500
+    );
+  }
+}
+
+/**
  * 環境に応じたKVクライアントの取得
  */
 function isLocalDevelopment(): boolean {
-  // REDIS_URLが設定されている場合は本番環境（Vercel KV）
-  if (process.env.REDIS_URL) {
-    return false;
+  // 本番環境（Vercel + Upstash Redis）の判定
+  // KV_REST_API_URLとKV_REST_API_TOKENが両方設定されている場合は本番環境
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return false; // Vercel KV（@vercel/kv）を使用
   }
   
-  // 開発環境の場合はローカル環境
+  // ローカル開発環境の判定
+  // NODE_ENVがdevelopmentの場合はローカル環境
   return process.env.NODE_ENV === 'development';
 }
 
@@ -70,7 +102,8 @@ export const kv = {
         const client = await initRedisClient();
         return await client.get(key);
       } else {
-        return await vercelKv.get(key);
+        const client = initUpstashClient();
+        return await client.get(key);
       }
     } catch (error) {
       console.error(`KV get error for key ${key}:`, error);
@@ -97,10 +130,11 @@ export const kv = {
           await client.set(key, value);
         }
       } else {
+        const client = initUpstashClient();
         if (options?.ex) {
-          await vercelKv.setex(key, options.ex, value);
+          await client.setex(key, options.ex, value);
         } else {
-          await vercelKv.set(key, value);
+          await client.set(key, value);
         }
       }
     } catch (error) {
@@ -124,8 +158,9 @@ export const kv = {
         const client = await initRedisClient();
         await client.del(keys);
       } else {
-        // Vercel KVでは一度に複数削除する場合、個別に削除
-        await Promise.all(keys.map(key => vercelKv.del(key)));
+        const client = initUpstashClient();
+        // Upstash Redisでは個別に削除
+        await Promise.all(keys.map(key => client.del(key)));
       }
     } catch (error) {
       console.error(`KV del error for keys ${keys.join(', ')}:`, error);
@@ -147,7 +182,8 @@ export const kv = {
         const result = await client.exists(key);
         return result === 1;
       } else {
-        const result = await vercelKv.exists(key);
+        const client = initUpstashClient();
+        const result = await client.exists(key);
         return result === 1;
       }
     } catch (error) {
@@ -169,7 +205,8 @@ export const kv = {
         const client = await initRedisClient();
         await client.sAdd(key, member);
       } else {
-        await vercelKv.sadd(key, member);
+        const client = initUpstashClient();
+        await client.sadd(key, member);
       }
     } catch (error) {
       console.error(`KV sadd error for key ${key}:`, error);
@@ -190,7 +227,8 @@ export const kv = {
         const client = await initRedisClient();
         return await client.sMembers(key);
       } else {
-        return await vercelKv.smembers(key);
+        const client = initUpstashClient();
+        return await client.smembers(key);
       }
     } catch (error) {
       console.error(`KV smembers error for key ${key}:`, error);
@@ -211,7 +249,8 @@ export const kv = {
         const client = await initRedisClient();
         await client.sRem(key, member);
       } else {
-        await vercelKv.srem(key, member);
+        const client = initUpstashClient();
+        await client.srem(key, member);
       }
     } catch (error) {
       console.error(`KV srem error for key ${key}:`, error);
@@ -232,7 +271,8 @@ export const kv = {
         const client = await initRedisClient();
         return await client.ttl(key);
       } else {
-        return await vercelKv.ttl(key);
+        const client = initUpstashClient();
+        return await client.ttl(key);
       }
     } catch (error) {
       console.error(`KV ttl error for key ${key}:`, error);
@@ -245,7 +285,29 @@ export const kv = {
   },
 
   /**
-   * パターンに一致するキーを取得
+   * TTLを設定
+   */
+  async expire(key: string, seconds: number): Promise<void> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        await client.expire(key, seconds);
+      } else {
+        const client = initUpstashClient();
+        await client.expire(key, seconds);
+      }
+    } catch (error) {
+      console.error(`KV expire error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'TTLの設定に失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
+
+  /**
+   * パターンマッチングでキーを検索
    */
   async keys(pattern: string): Promise<string[]> {
     try {
@@ -253,9 +315,8 @@ export const kv = {
         const client = await initRedisClient();
         return await client.keys(pattern);
       } else {
-        // Vercel KVではkeysコマンドが制限されているため、代替手段を使用
-        // 注意: 本番環境では大量のキーがある場合パフォーマンスに影響する可能性があります
-        return await vercelKv.keys(pattern);
+        const client = initUpstashClient();
+        return await client.keys(pattern);
       }
     } catch (error) {
       console.error(`KV keys error for pattern ${pattern}:`, error);
