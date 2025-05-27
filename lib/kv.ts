@@ -48,7 +48,13 @@ async function initRedisClient(): Promise<ReturnType<typeof createClient>> {
  * 環境に応じたKVクライアントの取得
  */
 function isLocalDevelopment(): boolean {
-  return process.env.NODE_ENV === 'development' && !process.env.KV_REST_API_URL;
+  // REDIS_URLが設定されている場合は本番環境（Vercel KV）
+  if (process.env.REDIS_URL) {
+    return false;
+  }
+  
+  // 開発環境の場合はローカル環境
+  return process.env.NODE_ENV === 'development';
 }
 
 /**
