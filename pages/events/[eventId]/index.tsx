@@ -270,7 +270,7 @@ const EventDetailPage: NextPage<EventDetailPageProps> = ({ eventId, initialData 
                         {race.status === 'active' || race.status === 'completed' ? (
                           <Link href={`/events/${eventId}/races/${race.id}`}>
                             <Button variant="primary" size="sm" className="w-full sm:w-auto">
-                              結果を見る
+                              速報を見る
                             </Button>
                           </Link>
                         ) : (

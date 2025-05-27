@@ -218,7 +218,7 @@ export default function AdminEventsPage(): JSX.Element {
                 <select
                   value={filter.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="form-input"
+                  className="select-modern"
                 >
                   <option value="all">すべて</option>
                   <option value="upcoming">開催予定</option>

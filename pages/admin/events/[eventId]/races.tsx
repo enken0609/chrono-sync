@@ -168,9 +168,9 @@ export default function AdminEventRacesPage(): JSX.Element {
       // ステータスに応じたメッセージを表示
       let message = `レースステータスを「${getStatusLabel(newStatus)}」に変更しました`;
       if (newStatus === 'completed') {
-        message += '\n結果は30日間保存されます';
+        message += '\n速報は30日間保存されます';
       } else if (newStatus === 'active' && race.status === 'completed') {
-        message += '\n結果は3分間のキャッシュに変更されます';
+        message += '\n速報は3分間のキャッシュに変更されます';
       }
       
       alert(message);
@@ -197,13 +197,13 @@ export default function AdminEventRacesPage(): JSX.Element {
       });
 
       if (!response.ok) {
-        throw new Error('レース結果の更新に失敗しました');
+        throw new Error('レース速報の更新に失敗しました');
       }
 
-      alert('レース結果を更新しました');
+      alert('レース速報を更新しました');
     } catch (error) {
       console.error('Refresh race results error:', error);
-      alert('レース結果の更新に失敗しました');
+      alert('レース速報の更新に失敗しました');
     } finally {
       setRefreshingRaces(prev => {
         const newSet = new Set(prev);
@@ -425,7 +425,7 @@ export default function AdminEventRacesPage(): JSX.Element {
                               </Button>
                             )}
                             {race.status === 'active' && (
-                              <div title="完了にするとTTL30日で長期保存されます">
+                              <div title="完了にすると30日間の長期保存に切り替わります">
                                 <Button
                                   variant="primary"
                                   size="sm"
@@ -436,7 +436,7 @@ export default function AdminEventRacesPage(): JSX.Element {
                               </div>
                             )}
                             {race.status === 'completed' && (
-                              <div title={`進行中に戻すとTTL${cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3分'}の短期キャッシュになります`}>
+                              <div title={`進行中に戻すと${cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3分'}の速報キャッシュに切り替わります`}>
                                 <Button
                                   variant="warning"
                                   size="sm"
@@ -453,7 +453,7 @@ export default function AdminEventRacesPage(): JSX.Element {
                                 onClick={() => handleRefreshRaceResults(race)}
                                 loading={refreshingRaces.has(race.id)}
                               >
-                                更新
+                                速報更新
                               </Button>
                             )}
                           </div>

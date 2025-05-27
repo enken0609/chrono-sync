@@ -55,7 +55,7 @@ export default function RaceResultsTable({
           <select
             value={selectedGroupIndex}
             onChange={(e) => setSelectedGroupIndex(Number(e.target.value))}
-            className="form-input w-full text-sm bg-white border-gray-300 rounded-md shadow-sm focus:border-brand-primary focus:ring-brand-primary"
+            className="select-modern"
           >
             {filteredGroups.map((group, index) => {
               const groupName = getGroupDisplayName(group);
