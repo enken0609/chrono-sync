@@ -13,6 +13,7 @@ let redisClient: ReturnType<typeof createClient> | null = null;
 
 // Upstash Redis クライアント（本番環境用）
 let upstashClient: Redis | null = null;
+let upstashReadOnlyClient: Redis | null = null;
 
 /**
  * ローカル開発用Redisクライアントの初期化
@@ -49,7 +50,7 @@ async function initRedisClient(): Promise<ReturnType<typeof createClient>> {
 }
 
 /**
- * Upstash Redis クライアントの初期化
+ * Upstash Redis クライアントの初期化（読み書き用）
  */
 function initUpstashClient(): Redis {
   if (upstashClient) {
@@ -62,7 +63,7 @@ function initUpstashClient(): Redis {
       token: process.env.KV_REST_API_TOKEN!,
     });
 
-    console.log('Upstash Redis client initialized successfully');
+    console.log('Upstash Redis client (read-write) initialized successfully');
     return upstashClient;
   } catch (error) {
     console.error('Failed to initialize Upstash Redis client:', error);
@@ -71,6 +72,34 @@ function initUpstashClient(): Redis {
       ERROR_CODES.CACHE_ERROR,
       500
     );
+  }
+}
+
+/**
+ * Upstash Redis 読み取り専用クライアントの初期化
+ */
+function initUpstashReadOnlyClient(): Redis {
+  // 読み取り専用トークンが設定されていない場合は、通常のクライアントを使用
+  if (!process.env.KV_REST_API_READ_ONLY_TOKEN) {
+    return initUpstashClient();
+  }
+
+  if (upstashReadOnlyClient) {
+    return upstashReadOnlyClient;
+  }
+
+  try {
+    upstashReadOnlyClient = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_READ_ONLY_TOKEN!,
+    });
+
+    console.log('Upstash Redis read-only client initialized successfully');
+    return upstashReadOnlyClient;
+  } catch (error) {
+    console.error('Failed to initialize Upstash Redis read-only client:', error);
+    // 読み取り専用クライアントの初期化に失敗した場合は、通常のクライアントを使用
+    return initUpstashClient();
   }
 }
 
@@ -102,7 +131,7 @@ export const kv = {
         const client = await initRedisClient();
         return await client.get(key);
       } else {
-        const client = initUpstashClient();
+        const client = initUpstashReadOnlyClient();
         return await client.get(key);
       }
     } catch (error) {
@@ -182,7 +211,7 @@ export const kv = {
         const result = await client.exists(key);
         return result === 1;
       } else {
-        const client = initUpstashClient();
+        const client = initUpstashReadOnlyClient();
         const result = await client.exists(key);
         return result === 1;
       }
@@ -227,7 +256,7 @@ export const kv = {
         const client = await initRedisClient();
         return await client.sMembers(key);
       } else {
-        const client = initUpstashClient();
+        const client = initUpstashReadOnlyClient();
         return await client.smembers(key);
       }
     } catch (error) {
@@ -271,7 +300,7 @@ export const kv = {
         const client = await initRedisClient();
         return await client.ttl(key);
       } else {
-        const client = initUpstashClient();
+        const client = initUpstashReadOnlyClient();
         return await client.ttl(key);
       }
     } catch (error) {
@@ -315,7 +344,7 @@ export const kv = {
         const client = await initRedisClient();
         return await client.keys(pattern);
       } else {
-        const client = initUpstashClient();
+        const client = initUpstashReadOnlyClient();
         return await client.keys(pattern);
       }
     } catch (error) {

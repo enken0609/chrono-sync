@@ -88,7 +88,7 @@ async function handleKvConnectionTest(
       hasKvUrl: !!process.env.KV_URL,
       hasKvRestApiUrl: !!process.env.KV_REST_API_URL,
       hasKvRestApiToken: !!process.env.KV_REST_API_TOKEN,
-      hasKvRestApiReadOnlyToken: !!process.env.KV_REST_API_READONLY_TOKEN,
+      hasKvRestApiReadOnlyToken: !!process.env.KV_REST_API_READ_ONLY_TOKEN,
       redisUrlPrefix: process.env.REDIS_URL ? process.env.REDIS_URL.split(':')[0] : undefined,
       kvRestApiUrlPrefix: process.env.KV_REST_API_URL ? process.env.KV_REST_API_URL.split('/')[2] : undefined,
     },
