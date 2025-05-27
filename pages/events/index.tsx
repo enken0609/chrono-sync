@@ -90,7 +90,7 @@ const EventsPage: NextPage = () => {
                     <select
                       value={selectedStatus}
                       onChange={(e) => setSelectedStatus(e.target.value as Event['status'] | 'all')}
-                      className="form-input w-full"
+                      className="select-modern"
                     >
                       <option value="all">すべて</option>
                       {Object.entries(EVENT_STATUS_LABELS).map(([key, label]) => (
@@ -216,7 +216,7 @@ const EventsPage: NextPage = () => {
                           {event.status === 'active' && (
                             <Link href={`/events/${event.id}`}>
                               <Button variant="success" size="sm">
-                                🔴 ライブ結果
+                                🔴 ライブ速報
                               </Button>
                             </Link>
                           )}

@@ -29,7 +29,7 @@ interface CacheSettings {
 }
 
 /**
- * レース結果表示ページ（フロントエンド用）
+ * レース速報表示ページ（フロントエンド用）
  */
 const RaceResultPage: NextPage<RaceResultPageProps> = ({ 
   eventId, 
@@ -199,7 +199,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
         </title>
         <meta 
           name="description" 
-          content={`${getRaceName()}の結果 - ${eventData?.name || '大会'}`} 
+          content={`${getRaceName()}の速報 - ${eventData?.name || '大会'}`} 
         />
         <meta 
           property="og:title" 
@@ -207,7 +207,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
         />
         <meta 
           property="og:description" 
-          content={`${getRaceName()}の結果 - ${eventData?.name || '大会'}`} 
+          content={`${getRaceName()}の速報 - ${eventData?.name || '大会'}`} 
         />
         <meta property="og:type" content="website" />
       </Head>
@@ -245,18 +245,19 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
               </li>
               <li className="flex-shrink-0">
                 <span className="text-gray-900 font-medium">
-                  レース結果
+                  レース速報
                 </span>
               </li>
             </ol>
           </nav>
 
-          {/* レースヘッダー（コンパクト化） */}
+          {/* レースヘッダー（スマホ対応改善） */}
           <div className="bg-white shadow rounded-lg mb-4 sm:mb-6">
             <div className="px-4 py-4 sm:px-6 sm:py-6">
-              <div className="flex flex-col space-y-3 sm:space-y-4">
+              <div className="flex flex-col space-y-4">
+                {/* タイトル部分 */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex-1 min-w-0 mb-3 sm:mb-0">
+                  <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mb-2">
                       <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words">
                         {eventData?.name || '大会名'}
@@ -268,78 +269,52 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
                       )}
                     </div>
 
-                    <div className="text-sm sm:text-base text-gray-600 mb-2 break-words">
+                    <div className="text-sm sm:text-base text-gray-600 break-words">
                       {getRaceName()}
                     </div>
-                  </div>
-
-                  <div className="flex flex-row sm:flex-col items-center sm:items-end space-x-2 sm:space-x-0 sm:space-y-2 flex-shrink-0">
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={handleRefresh}
-                      loading={isRefreshing}
-                      disabled={resultsLoading}
-                      className="text-xs"
-                    >
-                      🔄 更新
-                    </Button>
-                    
-                    {raceResults?.lastUpdated && (
-                      <div className="text-xs text-gray-500 text-right">
-                        <div>最終更新:</div>
-                        <div>
-                          {new Date(raceResults.lastUpdated).toLocaleString('ja-JP', {
-                            timeZone: 'Asia/Tokyo',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                        {(raceData || initialRaceData)?.status === 'completed' && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            📁 30日間保存
-                          </div>
-                        )}
-                        {(raceData || initialRaceData)?.status === 'active' && (
-                          <div className="text-xs text-green-600 mt-1">
-                            ⚡ {cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3分'}キャッシュ
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* レース結果 */}
+          {/* レース速報 */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200">
-              <h2 className="text-base sm:text-xl font-semibold text-gray-900">レース結果</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900">レース速報</h2>
+                <Button
+                  variant="warning"
+                  size="sm"
+                  onClick={handleRefresh}
+                  loading={isRefreshing}
+                  disabled={resultsLoading}
+                  className="text-xs px-4 py-2"
+                >
+                  🔄 更新
+                </Button>
+              </div>
             </div>
 
             <div className="p-4 sm:p-6">
               {resultsError ? (
                 <ErrorMessage 
-                  message="レース結果の取得に失敗しました" 
+                  message="レース速報の取得に失敗しました" 
                   onRetry={handleRefresh}
                 />
               ) : resultsLoading ? (
                 <div className="text-center py-8 sm:py-12">
                   <LoadingSpinner size="lg" />
-                  <p className="mt-2 text-gray-500 text-sm">レース結果を読み込み中...</p>
+                  <p className="mt-2 text-gray-500 text-sm">レース速報を読み込み中...</p>
                 </div>
               ) : !raceResults?.results || raceResults.results.length === 0 ? (
                 <div className="text-center py-8 sm:py-12">
                   <div className="text-gray-400 text-4xl sm:text-6xl mb-4">⏱️</div>
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
-                    結果がまだ公開されていません
+                    速報がまだ公開されていません
                   </h3>
                   <p className="text-gray-500 mb-4 text-sm">
-                    レースが進行中か、まだ結果が公開されていません。
+                    レースが進行中か、まだ速報が公開されていません。
                   </p>
                   <Button
                     variant="primary"
@@ -357,6 +332,37 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
                 />
               )}
             </div>
+
+            {/* 最終更新情報（画面下部） */}
+            {raceResults?.lastUpdated && (
+              <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
+                  <div className="flex items-center space-x-4 mb-2 sm:mb-0">
+                    <span>
+                      Last updated: {new Date(raceResults.lastUpdated).toLocaleString('ja-JP', {
+                        timeZone: 'Asia/Tokyo',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    {(raceData || initialRaceData)?.status === 'completed' && (
+                      <span className="inline-flex items-center text-blue-600">
+                        📁 Archived (30 days)
+                      </span>
+                    )}
+                    {(raceData || initialRaceData)?.status === 'active' && (
+                      <span className="inline-flex items-center text-green-600">
+                        ⚡ Live cache ({cacheSettings ? formatCacheTime(cacheSettings.raceResultsTtl) : '3min'})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 戻るボタン（スマホ対応） */}
