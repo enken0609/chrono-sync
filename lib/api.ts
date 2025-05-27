@@ -368,7 +368,11 @@ export function getRequiredQueryParam(
  * レスポンス時間計測ヘルパー
  */
 export function createTimestamp(): string {
-  return new Date().toISOString();
+  // 日本時間（JST）でタイムスタンプを生成
+  const now = new Date();
+  const jstOffset = 9 * 60; // JST は UTC+9
+  const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+  return jstTime.toISOString().replace('Z', '+09:00');
 }
 
 export function calculateCacheAge(timestamp: string): number {

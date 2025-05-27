@@ -312,7 +312,9 @@ export default function AdminEventRacesPage(): JSX.Element {
           <div>
             <h3 className="text-sm font-medium text-gray-500">開催日</h3>
             <p className="mt-1 text-sm text-gray-900">
-              {new Date(eventData.date).toLocaleDateString('ja-JP')}
+              {new Date(eventData.date).toLocaleDateString('ja-JP', {
+                timeZone: 'Asia/Tokyo'
+              })}
             </p>
           </div>
           <div>
@@ -390,17 +392,7 @@ export default function AdminEventRacesPage(): JSX.Element {
                           {race.category}
                         </td>
                         <td className="text-sm text-gray-900">
-                          {race.webScorerRaceId ? (
-                            <Link
-                              href={`/test/race-results?raceId=${race.webScorerRaceId}`}
-                              target="_blank"
-                              className="text-brand-600 hover:text-brand-700"
-                            >
-                              {race.webScorerRaceId} ↗
-                            </Link>
-                          ) : (
-                            '-'
-                          )}
+                          {race.webScorerRaceId || '-'}
                         </td>
                         <td>
                           <span className={`badge ${getStatusBadgeColor(race.status)}`}>

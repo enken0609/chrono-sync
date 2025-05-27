@@ -290,6 +290,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
                         <div>最終更新:</div>
                         <div>
                           {new Date(raceResults.lastUpdated).toLocaleString('ja-JP', {
+                            timeZone: 'Asia/Tokyo',
                             month: 'short',
                             day: 'numeric',
                             hour: '2-digit',

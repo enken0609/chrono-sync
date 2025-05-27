@@ -278,7 +278,9 @@ export default function AdminEventsPage(): JSX.Element {
                           )}
                         </td>
                         <td className="text-sm text-gray-900">
-                          {new Date(event.date).toLocaleDateString('ja-JP')}
+                          {new Date(event.date).toLocaleDateString('ja-JP', {
+                            timeZone: 'Asia/Tokyo'
+                          })}
                         </td>
                         <td>
                           <span className={`badge ${getStatusBadgeColor(event.status)}`}>
