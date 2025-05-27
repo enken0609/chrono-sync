@@ -118,6 +118,13 @@ export default async function handler(
           // TTLを決定（完了したレースは30日、進行中は設定値）
           const ttl = raceConfig.status === 'completed' ? 30 * 24 * 60 * 60 : await getCacheTtl();
           
+          console.log(`Attempting to cache data for race ${raceId}:`);
+          console.log(`- Cache key: ${cacheKey}`);
+          console.log(`- Timestamp key: ${timestampKey}`);
+          console.log(`- TTL: ${ttl}s`);
+          console.log(`- Race status: ${raceConfig.status}`);
+          console.log(`- Fresh data size: ${JSON.stringify(freshData).length} characters`);
+          
           // キャッシュに保存
           await Promise.all([
             kvJson.set(cacheKey, freshData, { ex: ttl }),
@@ -126,7 +133,11 @@ export default async function handler(
           
           console.log(`Fresh data cached for race ${raceId} (WebScorer: ${webScorerRaceId}) with TTL: ${ttl}s`);
         } catch (cacheError) {
-          console.warn(`Failed to cache data for race ${raceId}:`, cacheError);
+          console.error(`Failed to cache data for race ${raceId}:`, cacheError);
+          if (cacheError instanceof Error) {
+            console.error(`Cache error details: ${cacheError.message}`);
+            console.error(`Cache error stack: ${cacheError.stack}`);
+          }
           // キャッシュ保存に失敗してもデータは返す
         }
 

@@ -149,27 +149,42 @@ export const kv = {
    */
   async set(key: string, value: string, options?: { ex?: number; px?: number }): Promise<void> {
     try {
+      console.log(`kv.set: Setting data for key ${key}`);
+      console.log(`kv.set: Value length for key ${key}:`, value.length);
+      console.log(`kv.set: Options for key ${key}:`, options);
+      console.log(`kv.set: Environment:`, isLocalDevelopment() ? 'local' : 'upstash');
+      
       if (isLocalDevelopment()) {
         const client = await initRedisClient();
         if (options?.ex) {
+          console.log(`kv.set: Using setEx with TTL ${options.ex} for key ${key}`);
           await client.setEx(key, options.ex, value);
         } else if (options?.px) {
+          console.log(`kv.set: Using pSetEx with TTL ${options.px}ms for key ${key}`);
           await client.pSetEx(key, options.px, value);
         } else {
+          console.log(`kv.set: Using set (no TTL) for key ${key}`);
           await client.set(key, value);
         }
       } else {
         const client = initUpstashClient();
         if (options?.ex) {
+          console.log(`kv.set: Using setex with TTL ${options.ex} for key ${key}`);
           await client.setex(key, options.ex, value);
         } else {
+          console.log(`kv.set: Using set (no TTL) for key ${key}`);
           await client.set(key, value);
         }
       }
+      console.log(`kv.set: Successfully saved data for key ${key}`);
     } catch (error) {
       console.error(`KV set error for key ${key}:`, error);
+      if (error instanceof Error) {
+        console.error(`KV set error details: ${error.message}`);
+        console.error(`KV set error stack: ${error.stack}`);
+      }
       throw new ChronoSyncError(
-        'データの保存に失敗しました',
+        `データの保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
         ERROR_CODES.CACHE_ERROR,
         500
       );
@@ -424,12 +439,25 @@ export const kvJson = {
    */
   async set<T>(key: string, value: T, options?: { ex?: number; px?: number }): Promise<void> {
     try {
+      console.log(`kvJson.set: Setting data for key ${key}`);
+      console.log(`kvJson.set: Value type for key ${key}:`, typeof value);
+      console.log(`kvJson.set: Value for key ${key}:`, value);
+      console.log(`kvJson.set: Options for key ${key}:`, options);
+      
       const data = JSON.stringify(value);
+      console.log(`kvJson.set: Stringified data for key ${key}:`, data);
+      console.log(`kvJson.set: Stringified data length for key ${key}:`, data.length);
+      
       await kv.set(key, data, options);
+      console.log(`kvJson.set: Successfully saved data for key ${key}`);
     } catch (error) {
       console.error(`JSON set error for key ${key}:`, error);
+      if (error instanceof Error) {
+        console.error(`JSON set error details: ${error.message}`);
+        console.error(`JSON set error stack: ${error.stack}`);
+      }
       throw new ChronoSyncError(
-        'JSONデータの保存に失敗しました',
+        `JSONデータの保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
         ERROR_CODES.CACHE_ERROR,
         500
       );
