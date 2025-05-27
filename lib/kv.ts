@@ -370,15 +370,39 @@ export const kvJson = {
       console.log(`kvJson.get: Getting data for key ${key}`);
       const data = await kv.get(key);
       console.log(`kvJson.get: Raw data for key ${key}:`, data);
+      console.log(`kvJson.get: Data type for key ${key}:`, typeof data);
       
       if (!data) {
         console.log(`kvJson.get: No data found for key ${key}`);
         return null;
       }
       
-      const parsed = JSON.parse(data);
-      console.log(`kvJson.get: Parsed data for key ${key}:`, parsed);
-      return parsed;
+      // 環境に応じて処理を分岐
+      if (isLocalDevelopment()) {
+        // ローカル環境（Redis）では文字列として保存されているため、JSON.parseが必要
+        console.log(`kvJson.get: Local environment - parsing JSON string for key ${key}`);
+        const parsed = JSON.parse(data as string);
+        console.log(`kvJson.get: Parsed data for key ${key}:`, parsed);
+        return parsed;
+      } else {
+        // Upstash Redisは自動的にJSONを解析するため、既にオブジェクトの場合はそのまま返す
+        if (typeof data === 'object') {
+          console.log(`kvJson.get: Upstash environment - data is already an object for key ${key}:`, data);
+          return data as T;
+        }
+        
+        // 文字列の場合のみJSON.parseを実行
+        if (typeof data === 'string') {
+          console.log(`kvJson.get: Upstash environment - parsing JSON string for key ${key}`);
+          const parsed = JSON.parse(data);
+          console.log(`kvJson.get: Parsed data for key ${key}:`, parsed);
+          return parsed;
+        }
+        
+        // その他の型の場合はそのまま返す
+        console.log(`kvJson.get: Upstash environment - returning data as-is for key ${key}:`, data);
+        return data as T;
+      }
     } catch (error) {
       console.error(`JSON get error for key ${key}:`, error);
       // エラーの詳細をログに出力
