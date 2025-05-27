@@ -367,11 +367,31 @@ export const kvJson = {
    */
   async get<T>(key: string): Promise<T | null> {
     try {
+      console.log(`kvJson.get: Getting data for key ${key}`);
       const data = await kv.get(key);
-      return data ? JSON.parse(data) : null;
+      console.log(`kvJson.get: Raw data for key ${key}:`, data);
+      
+      if (!data) {
+        console.log(`kvJson.get: No data found for key ${key}`);
+        return null;
+      }
+      
+      const parsed = JSON.parse(data);
+      console.log(`kvJson.get: Parsed data for key ${key}:`, parsed);
+      return parsed;
     } catch (error) {
       console.error(`JSON get error for key ${key}:`, error);
-      return null;
+      // エラーの詳細をログに出力
+      if (error instanceof Error) {
+        console.error(`JSON get error details: ${error.message}`);
+        console.error(`JSON get error stack: ${error.stack}`);
+      }
+      // エラーを再スローして、呼び出し元でキャッチできるようにする
+      throw new ChronoSyncError(
+        `JSONデータの取得に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
     }
   },
 

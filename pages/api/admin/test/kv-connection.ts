@@ -130,15 +130,28 @@ async function handleKvConnectionTest(
 
     // 2. JSON操作テスト
     try {
+      console.log('Testing JSON set operation...');
       await kvJson.set(`${testKey}:json`, testJsonValue);
       result.testResults.jsonSet = true;
+      console.log('JSON set operation successful');
       
+      console.log('Testing JSON get operation...');
       const getJsonValue = await kvJson.get<{ test: boolean; timestamp: number }>(`${testKey}:json`);
+      console.log('JSON get operation result:', getJsonValue);
+      console.log('JSON get value type:', typeof getJsonValue);
+      console.log('JSON get test property:', getJsonValue?.test);
+      console.log('JSON get test property type:', typeof getJsonValue?.test);
+      
       result.testResults.jsonGet = getJsonValue?.test === true;
+      console.log('JSON get test result:', result.testResults.jsonGet);
     } catch (error) {
       console.error('JSON set/get test failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       if (!result.errorDetails) {
-        result.errorDetails = `JSON operations failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        result.errorDetails = `JSON operations failed: ${errorMessage}${errorStack ? ` | Stack: ${errorStack}` : ''}`;
+      } else {
+        result.errorDetails += ` | JSON operations failed: ${errorMessage}`;
       }
     }
 
