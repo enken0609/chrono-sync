@@ -371,6 +371,116 @@ export const kv = {
       );
     }
   },
+
+  /**
+   * カウンターをインクリメント
+   */
+  async incr(key: string): Promise<number> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        return await client.incr(key);
+      } else {
+        const client = initUpstashClient();
+        return await client.incr(key);
+      }
+    } catch (error) {
+      console.error(`KV incr error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'カウンターのインクリメントに失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
+
+  /**
+   * リストの先頭にデータを追加
+   */
+  async lpush(key: string, value: string): Promise<number> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        return await client.lPush(key, value);
+      } else {
+        const client = initUpstashClient();
+        return await client.lpush(key, value);
+      }
+    } catch (error) {
+      console.error(`KV lpush error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'リストへのデータ追加に失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
+
+  /**
+   * リストの長さを取得
+   */
+  async llen(key: string): Promise<number> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        return await client.lLen(key);
+      } else {
+        const client = initUpstashReadOnlyClient();
+        return await client.llen(key);
+      }
+    } catch (error) {
+      console.error(`KV llen error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'リストの長さの取得に失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
+
+  /**
+   * リストの要素を取得
+   */
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        return await client.lRange(key, start, stop);
+      } else {
+        const client = initUpstashReadOnlyClient();
+        return await client.lrange(key, start, stop);
+      }
+    } catch (error) {
+      console.error(`KV lrange error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'リストの要素の取得に失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
+
+  /**
+   * リストを切り詰める
+   */
+  async ltrim(key: string, start: number, stop: number): Promise<void> {
+    try {
+      if (isLocalDevelopment()) {
+        const client = await initRedisClient();
+        await client.lTrim(key, start, stop);
+      } else {
+        const client = initUpstashClient();
+        await client.ltrim(key, start, stop);
+      }
+    } catch (error) {
+      console.error(`KV ltrim error for key ${key}:`, error);
+      throw new ChronoSyncError(
+        'リストの切り詰めに失敗しました',
+        ERROR_CODES.CACHE_ERROR,
+        500
+      );
+    }
+  },
 };
 
 /**
