@@ -10,10 +10,12 @@ import LoadingSpinner from '@/components/common/loading-spinner';
 import ErrorMessage from '@/components/common/error-message';
 import Button from '@/components/common/button';
 import RaceResultsTable from '@/components/race/race-results-table';
+import { SponsorSection } from '@/components/sponsors/sponsor-section';
 import { useRaceResults, RaceResultsResponse } from '@/hooks/use-race-results';
 import { Event, Race } from '@/types';
 import { fetcher } from '@/lib/api';
 import { SITE_CONFIG } from '@/lib/constants';
+import { trackRaceView, trackResultsRefresh } from '@/lib/gtag';
 
 interface RaceResultPageProps {
   eventId: string;
@@ -42,7 +44,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
 
   // 大会情報取得
   const { data: eventData } = useSWR<Event>(
-    `/api/events/${eventId}`,
+    eventId ? `/api/events/${eventId}` : null,
     fetcher,
     {
       fallbackData: initialEventData,
@@ -54,7 +56,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
     data: raceData, 
     error: raceError 
   } = useSWR<Race>(
-    `/api/races/${raceId}/info`,
+    raceId ? `/api/races/${raceId}/info` : null,
     fetcher,
     {
       fallbackData: initialRaceData,
@@ -83,6 +85,44 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
     }
   );
 
+  // レース情報を取得（結果データまたは初期データから）
+  const raceInfo = raceResults?.raceInfo || initialRaceData;
+  
+  // レース名を安全に取得
+  const getRaceName = () => {
+    // 管理画面で設定したレース名を最優先（クライアントサイド）
+    if (raceData?.name) {
+      return raceData.name;
+    }
+    
+    // 管理画面で設定したレース名を最優先（サーバーサイド）
+    if (initialRaceData?.name) {
+      return initialRaceData.name;
+    }
+    
+    // フォールバック: WebScorer APIからの名前
+    if (raceResults?.raceInfo?.Name) {
+      return raceResults.raceInfo.Name;
+    }
+    
+    return 'レース名';
+  };
+
+  // Google Analytics: レース表示イベント
+  React.useEffect(() => {
+    // スクリプト読み込み完了を待つ
+    const trackRaceViewWithDelay = () => {
+      if (eventData?.name && getRaceName()) {
+        trackRaceView(raceId, getRaceName());
+      }
+    };
+
+    // 少し遅延させてからイベントを送信
+    const timer = setTimeout(trackRaceViewWithDelay, 1000);
+
+    return () => clearTimeout(timer);
+  }, [eventData?.name, raceId, raceData?.name, raceResults?.raceInfo?.Name]);
+
   if (router.isFallback) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -97,6 +137,9 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      // Google Analytics: 更新ボタンクリック追跡
+      trackResultsRefresh(raceId);
+      
       await mutateResults();
     } catch (error) {
       console.error('Refresh failed:', error);
@@ -153,42 +196,6 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
       const days = Math.floor(seconds / 86400);
       return `${days}日`;
     }
-  };
-
-  // レース情報を取得（結果データまたは初期データから）
-  const raceInfo = raceResults?.raceInfo || initialRaceData;
-  
-  // レース名を安全に取得
-  const getRaceName = () => {
-    console.log('getRaceName debug:', {
-      raceData: raceData,
-      raceDataName: raceData?.name,
-      initialRaceData: initialRaceData,
-      initialRaceDataName: initialRaceData?.name,
-      raceResultsRaceInfo: raceResults?.raceInfo,
-      raceResultsRaceInfoName: raceResults?.raceInfo?.Name
-    });
-    
-    // 管理画面で設定したレース名を最優先（クライアントサイド）
-    if (raceData?.name) {
-      console.log('Using raceData.name:', raceData.name);
-      return raceData.name;
-    }
-    
-    // 管理画面で設定したレース名を最優先（サーバーサイド）
-    if (initialRaceData?.name) {
-      console.log('Using initialRaceData.name:', initialRaceData.name);
-      return initialRaceData.name;
-    }
-    
-    // フォールバック: WebScorer APIからの名前
-    if (raceResults?.raceInfo?.Name) {
-      console.log('Using raceResults.raceInfo.Name:', raceResults.raceInfo.Name);
-      return raceResults.raceInfo.Name;
-    }
-    
-    console.log('Using fallback: レース名');
-    return 'レース名';
   };
 
   return (
@@ -250,6 +257,12 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
               </li>
             </ol>
           </nav>
+
+          {/* スポンサーセクション */}
+          <SponsorSection 
+            title="スポンサー" 
+            limit={10}
+          />
 
           {/* レースヘッダー（スマホ対応改善） */}
           <div className="bg-white shadow rounded-lg mb-4 sm:mb-6">
