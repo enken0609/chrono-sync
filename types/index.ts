@@ -209,4 +209,17 @@ export interface RaceFilters {
   category?: string;
   status?: Race['status'];
   search?: string;
+}
+
+import type { Sponsor } from '@/lib/microcms';
+
+/**
+ * スポンサーAPIのレスポンス型
+ */
+export interface SponsorsResponse {
+  success: boolean;
+  data: Sponsor[];
+  totalCount?: number;
+  error?: string;
+  details?: string;
 } 

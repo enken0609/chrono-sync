@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { trackSponsorClick } from '@/lib/gtag';
 import type { Sponsor } from '@/lib/microcms';
 
+// デフォルトのプレースホルダー画像（Base64エンコードされた小さな画像）
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg==';
+
 /**
  * Props
  */
@@ -24,11 +27,12 @@ export const SponsorLogo: React.FC<SponsorLogoProps> = ({
   className = '',
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // サイズ設定
   const sizeClasses = {
-    sm: 'h-10 w-20',   // スマホ用: コンパクト
-    md: 'h-15 w-30',   // デスクトップ用: 標準
+    sm: 'h-12 w-24',   // スマホ用: コンパクト
+    md: 'h-16 w-32',   // デスクトップ用: 標準
     lg: 'h-20 w-40',   // 大画面用: 大きめ
   };
 
@@ -36,7 +40,7 @@ export const SponsorLogo: React.FC<SponsorLogoProps> = ({
    * ロゴクリック処理
    */
   const handleClick = async (): Promise<void> => {
-    if (isLoading) return;
+    if (isLoading || !sponsor.websiteUrl) return;
 
     setIsLoading(true);
 
@@ -70,7 +74,9 @@ export const SponsorLogo: React.FC<SponsorLogoProps> = ({
     } catch (error) {
       console.error('スポンサーロゴクリック処理エラー:', error);
       // エラーが発生してもリンクは開く
-      window.open(sponsor.websiteUrl, '_blank', 'noopener,noreferrer');
+      if (sponsor.websiteUrl) {
+        window.open(sponsor.websiteUrl, '_blank', 'noopener,noreferrer');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -94,16 +100,33 @@ export const SponsorLogo: React.FC<SponsorLogoProps> = ({
           className={`
             object-contain transition-all duration-200 rounded-lg
             ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 hover:shadow-lg'}
+            ${imageError ? 'hidden' : ''}
           `}
-          sizes="(max-width: 768px) 80px, (max-width: 1200px) 120px, 160px"
-          priority={false}
+          sizes="(max-width: 768px) 96px, (max-width: 1200px) 128px, 160px"
+          priority={true}
+          loading="eager"
           onClick={isLoading ? undefined : handleClick}
           onError={(e) => {
             console.error(`スポンサーロゴの読み込みに失敗しました: ${sponsor.name}`, e);
+            setImageError(true);
           }}
           title={isLoading ? 'ローディング中...' : `${sponsor.name}のサイトを開く`}
         />
         
+        {/* エラー時の代替表示 */}
+        {imageError && (
+          <div 
+            className={`
+              flex items-center justify-center bg-gray-100 rounded-lg w-full h-full
+              text-xs text-gray-500 cursor-pointer hover:bg-gray-200 transition-colors
+            `}
+            onClick={handleClick}
+            title={`${sponsor.name}のサイトを開く`}
+          >
+            {sponsor.name}
+          </div>
+        )}
+
         {/* ローディング表示 */}
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">

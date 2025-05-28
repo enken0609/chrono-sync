@@ -70,14 +70,13 @@ export const getSponsors = async (limit: number = 10): Promise<Sponsor[]> => {
       url: `https://${process.env.MICROCMS_SERVICE_DOMAIN}.microcms.io/api/v1/sponsors`,
     });
 
-    // デバッグのため、フィルターを完全に削除
+    // アクティブなスポンサーのみを取得し、表示順でソート
     const response = await client.get<MicroCMSResponse<Sponsor>>({
       endpoint: 'sponsors',
       queries: {
         limit,
-        // フィルターを完全に削除してテスト
-        // filters: 'isActive[equals]true',
-        // orders: 'displayOrder',
+        filters: 'isActive[equals]true',
+        orders: 'displayOrder',
       },
     });
 
