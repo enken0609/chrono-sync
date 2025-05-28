@@ -4,7 +4,16 @@ const nextConfig = {
   swcMinify: true,
   experimental: {
     // ISR設定
-    isrMemoryCacheSize: 50
+    isrMemoryCacheSize: 50,
+    // Pages Router必須（App Router無効化）
+    appDir: false
+  },
+  // 画像最適化設定
+  images: {
+    domains: [
+      'images.microcms-assets.io', // microCMS画像ホスト
+    ],
+    formats: ['image/webp', 'image/avif'],
   },
   // パスエイリアス設定
   webpack: (config) => {
@@ -20,10 +29,6 @@ const nextConfig = {
     NEXT_PUBLIC_SITE_DESCRIPTION: process.env.NEXT_PUBLIC_SITE_DESCRIPTION,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   },
-  // Pages Router必須（App Router無効化）
-  experimental: {
-    appDir: false
-  }
 };
 
 module.exports = nextConfig; 
