@@ -262,6 +262,7 @@ const RaceResultPage: NextPage<RaceResultPageProps> = ({
           <SponsorSection 
             title="スポンサー" 
             limit={10}
+            className=""
           />
 
           {/* レースヘッダー（スマホ対応改善） */}
