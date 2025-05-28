@@ -9,6 +9,7 @@ import Footer from '@/components/layout/footer';
 import LoadingSpinner from '@/components/common/loading-spinner';
 import ErrorMessage from '@/components/common/error-message';
 import Button from '@/components/common/button';
+import SponsorSection from '@/components/sponsors/sponsor-section';
 import { Event, Race } from '@/types';
 import { fetcher } from '@/lib/api';
 import { SITE_CONFIG } from '@/lib/constants';
@@ -176,6 +177,9 @@ const EventDetailPage: NextPage<EventDetailPageProps> = ({ eventId, initialData 
               </li>
             </ol>
           </nav>
+
+          {/* スポンサーセクション */}
+          <SponsorSection className="bg-gradient-to-b from-gray-50 to-gray-100 -mx-4 sm:-mx-6 lg:-mx-8" />
 
           {/* 大会ヘッダー（コンパクト化） */}
           <div className="bg-white shadow rounded-lg mb-4 sm:mb-6">
