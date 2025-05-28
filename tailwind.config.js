@@ -3,6 +3,7 @@ module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -34,6 +35,21 @@ module.exports = {
       animation: {
         'spin-slow': 'spin 3s linear infinite',
         'pulse-fast': 'pulse 1s ease-in-out infinite',
+      },
+      spacing: {
+        '15': '3.75rem',  // 60px
+        '30': '7.5rem',   // 120px
+      },
+      height: {
+        '15': '3.75rem',  // 60px
+      },
+      width: {
+        '30': '7.5rem',   // 120px
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
     },
   },

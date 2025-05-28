@@ -46,8 +46,6 @@ export default async function handler(
     const raceId = getRequiredQueryParam(req.query, 'raceId');
     const forceRefresh = req.query.force === 'true' || req.method === 'POST';
 
-    console.log(`API called for race ${raceId}, force: ${forceRefresh}`);
-
     // レース設定を取得してWebScorer Race IDを確認
     const raceConfig = await kvJson.get<Race>(KV_KEYS.raceConfig(raceId));
     
@@ -60,7 +58,6 @@ export default async function handler(
     }
 
     const webScorerRaceId = raceConfig.webScorerRaceId;
-    console.log(`Using WebScorer Race ID: ${webScorerRaceId} for race: ${raceId}`);
 
     // キャッシュキーの生成
     const cacheKey = KV_KEYS.raceResults(raceId);
@@ -83,8 +80,6 @@ export default async function handler(
           const ttlLimit = raceConfig.status === 'completed' ? 30 * 24 * 60 * 60 : await getCacheTtl();
           
           if (cacheAge < ttlLimit) {
-            console.log(`Cache hit for race ${raceId}, age: ${cacheAge}s, status: ${raceConfig.status}, TTL: ${ttlLimit}s`);
-            
             return res.status(200).json(
               createSuccessResponse(cachedData, {
                 lastUpdated: cacheTimestamp,
@@ -93,68 +88,39 @@ export default async function handler(
               })
             );
           } else {
-            console.log(`Cache expired for race ${raceId}, age: ${cacheAge}s, TTL: ${ttlLimit}s`);
             shouldFetchNew = true;
           }
         } else {
-          console.log(`No cache found for race ${raceId}`);
           shouldFetchNew = true;
         }
       } catch (cacheError) {
-        console.warn(`Cache access failed for race ${raceId}:`, cacheError);
         shouldFetchNew = true;
       }
     }
 
     if (shouldFetchNew) {
       try {
-        console.log(`Fetching fresh data for WebScorer race ${webScorerRaceId}`);
-        
-        // WebScorer APIから新しいデータを取得
-        const freshData = await fetchWebScorerResults(webScorerRaceId);
+        // WebScorer APIから最新データを取得
+        const newData = await fetchWebScorerResults(webScorerRaceId);
         const timestamp = createTimestamp();
 
-        try {
-          // TTLを決定（完了したレースは30日、進行中は設定値）
-          const ttl = raceConfig.status === 'completed' ? 30 * 24 * 60 * 60 : await getCacheTtl();
-          
-          console.log(`Attempting to cache data for race ${raceId}:`);
-          console.log(`- Cache key: ${cacheKey}`);
-          console.log(`- Timestamp key: ${timestampKey}`);
-          console.log(`- TTL: ${ttl}s`);
-          console.log(`- Race status: ${raceConfig.status}`);
-          console.log(`- Fresh data size: ${JSON.stringify(freshData).length} characters`);
-          
-          // キャッシュに保存
-          await Promise.all([
-            kvJson.set(cacheKey, freshData, { ex: ttl }),
-            kv.set(timestampKey, timestamp, { ex: ttl }),
-          ]);
-          
-          console.log(`Fresh data cached for race ${raceId} (WebScorer: ${webScorerRaceId}) with TTL: ${ttl}s`);
-        } catch (cacheError) {
-          console.error(`Failed to cache data for race ${raceId}:`, cacheError);
-          if (cacheError instanceof Error) {
-            console.error(`Cache error details: ${cacheError.message}`);
-            console.error(`Cache error stack: ${cacheError.stack}`);
-          }
-          // キャッシュ保存に失敗してもデータは返す
-        }
+        // キャッシュを更新
+        await Promise.all([
+          kvJson.set(cacheKey, newData),
+          kv.set(timestampKey, timestamp),
+        ]);
 
         return res.status(200).json(
-          createSuccessResponse(freshData, {
+          createSuccessResponse(newData, {
             lastUpdated: timestamp,
             cacheHit: false,
             cacheAge: 0,
           })
         );
       } catch (apiError) {
-        console.error(`WebScorer API error for race ${raceId} (WebScorer: ${webScorerRaceId}):`, apiError);
-        
         // API呼び出しに失敗した場合、古いキャッシュがあれば返却
         if (cachedData && cacheTimestamp) {
           const cacheAge = calculateCacheAge(cacheTimestamp);
-          console.log(`Falling back to stale cache for race ${raceId}, age: ${cacheAge}s`);
           
           return res.status(200).json(
             createSuccessResponse(cachedData, {
@@ -176,7 +142,6 @@ export default async function handler(
     );
 
   } catch (error) {
-    console.error('Race results API error:', error);
     return res.status(500).json(handleApiError(error));
   }
 } 
