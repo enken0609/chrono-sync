@@ -129,9 +129,37 @@ export default async function handler(
   try {
     const { raceId } = req.query;
     
+    if (!raceId || typeof raceId !== 'string') {
+      console.error('無効なraceId:', raceId);
+      return res.status(400).json({
+        success: false,
+        error: '無効なレースIDです'
+      });
+    }
+
+    console.log('KVからデータ取得開始 - raceId:', raceId);
+    
     // KVからレース結果とレース情報を取得
-    const raceResultsJson = await kv.get(`race:${raceId}:results`);
-    const raceConfigJson = await kv.get(`race:${raceId}:config`);
+    let raceResultsJson: string | null;
+    try {
+      raceResultsJson = await kv.get(`race:${raceId}:results`);
+      console.log('KVからのレース結果取得成功');
+    } catch (kvError) {
+      console.error('KVからのレース結果取得エラー:', kvError);
+      return res.status(500).json({
+        success: false,
+        error: 'レース結果の取得に失敗しました'
+      });
+    }
+
+    let raceConfigJson: string | null;
+    try {
+      raceConfigJson = await kv.get(`race:${raceId}:config`);
+      console.log('KVからのレース設定取得成功');
+    } catch (kvError) {
+      console.error('KVからのレース設定取得エラー:', kvError);
+      raceConfigJson = null; // 設定は必須ではないので続行
+    }
     
     if (!raceResultsJson) {
       console.error(`レース結果が見つかりません。raceId: ${raceId}`);
@@ -142,15 +170,45 @@ export default async function handler(
     }
 
     // 文字列をJSONとしてパース
-    console.log('レース結果データ:', raceResultsJson);
-    const raceResults = JSON.parse(raceResultsJson) as WebScorerResponse;
-    const raceConfig = raceConfigJson ? JSON.parse(raceConfigJson) : null;
-    const raceName = raceConfig ? raceConfig.name : raceResults.RaceInfo.Name;
+    let raceResults: WebScorerResponse;
+    try {
+      console.log('レース結果データのパース開始');
+      raceResults = JSON.parse(raceResultsJson) as WebScorerResponse;
+      console.log('レース結果データのパース成功');
+    } catch (parseError) {
+      console.error('レース結果データのパースエラー:', parseError);
+      return res.status(500).json({
+        success: false,
+        error: 'レース結果データの形式が不正です'
+      });
+    }
+
+    let raceConfig = null;
+    if (raceConfigJson) {
+      try {
+        raceConfig = JSON.parse(raceConfigJson);
+        console.log('レース設定データのパース成功');
+      } catch (parseError) {
+        console.error('レース設定データのパースエラー:', parseError);
+        // 設定は必須ではないので続行
+      }
+    }
+
+    const raceName = raceConfig ? raceConfig.name : raceResults.RaceInfo?.Name || 'Unknown Race';
     const timestamp = new Date().toLocaleString('ja-JP');
+
+    // データ構造の検証
+    if (!raceResults.Results || !Array.isArray(raceResults.Results)) {
+      console.error('不正なレース結果データ構造:', raceResults);
+      return res.status(500).json({
+        success: false,
+        error: 'レース結果データの構造が不正です'
+      });
+    }
 
     // カテゴリー別結果の確認
     const categoryGroups = raceResults.Results.filter(group => 
-      group.Grouping.Category && !group.Grouping.Overall
+      group.Grouping?.Category && !group.Grouping.Overall
     );
     
     console.log(`カテゴリー数: ${categoryGroups.length}`);
@@ -163,12 +221,19 @@ export default async function handler(
     }
 
     // Excelワークブックを作成
+    console.log('Excelワークブック作成開始');
     const workbook = new ExcelJS.Workbook();
 
     // カテゴリー別結果のシートを作成
     categoryGroups.forEach((group: WebScorerGrouping) => {
-      const categoryName = group.Grouping.Category || '不明';
+      const categoryName = group.Grouping?.Category || '不明';
       console.log(`シート作成: ${categoryName}, レーサー数: ${group.Racers?.length || 0}`);
+      
+      if (!group.Racers || !Array.isArray(group.Racers)) {
+        console.error(`不正なレーサーデータ - カテゴリー: ${categoryName}`);
+        return;
+      }
+
       const sheetName = categoryName.length > 31 ? categoryName.substring(0, 28) + '...' : categoryName;
       const sheet = createAndSetupWorksheet(
         workbook,
@@ -180,7 +245,9 @@ export default async function handler(
     });
 
     // Excelファイルを生成
+    console.log('Excelファイル生成開始');
     const buffer = await workbook.xlsx.writeBuffer();
+    console.log('Excelファイル生成完了');
 
     // レスポンスヘッダーの設定
     res.setHeader(
