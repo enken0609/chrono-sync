@@ -134,6 +134,7 @@ export default async function handler(
     const raceConfigJson = await kv.get(`race:${raceId}:config`);
     
     if (!raceResultsJson) {
+      console.error(`レース結果が見つかりません。raceId: ${raceId}`);
       return res.status(404).json({
         success: false,
         error: 'レース結果が見つかりません'
@@ -141,21 +142,33 @@ export default async function handler(
     }
 
     // 文字列をJSONとしてパース
+    console.log('レース結果データ:', raceResultsJson);
     const raceResults = JSON.parse(raceResultsJson) as WebScorerResponse;
     const raceConfig = raceConfigJson ? JSON.parse(raceConfigJson) : null;
     const raceName = raceConfig ? raceConfig.name : raceResults.RaceInfo.Name;
     const timestamp = new Date().toLocaleString('ja-JP');
 
+    // カテゴリー別結果の確認
+    const categoryGroups = raceResults.Results.filter(group => 
+      group.Grouping.Category && !group.Grouping.Overall
+    );
+    
+    console.log(`カテゴリー数: ${categoryGroups.length}`);
+    if (categoryGroups.length === 0) {
+      console.error('カテゴリーが見つかりません');
+      return res.status(400).json({
+        success: false,
+        error: 'カテゴリーデータが見つかりません'
+      });
+    }
+
     // Excelワークブックを作成
     const workbook = new ExcelJS.Workbook();
 
     // カテゴリー別結果のシートを作成
-    const categoryGroups = raceResults.Results.filter(group => 
-      group.Grouping.Category && !group.Grouping.Overall
-    );
-
     categoryGroups.forEach((group: WebScorerGrouping) => {
       const categoryName = group.Grouping.Category || '不明';
+      console.log(`シート作成: ${categoryName}, レーサー数: ${group.Racers?.length || 0}`);
       const sheetName = categoryName.length > 31 ? categoryName.substring(0, 28) + '...' : categoryName;
       const sheet = createAndSetupWorksheet(
         workbook,
@@ -183,6 +196,12 @@ export default async function handler(
 
   } catch (error) {
     console.error('Excel出力エラー:', error);
+    const err = error as Error;
+    console.error('エラーの詳細:', {
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    });
     res.status(500).json({
       success: false,
       error: 'Excel出力中にエラーが発生しました'
