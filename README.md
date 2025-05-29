@@ -1,229 +1,118 @@
-# ChronoSync
+# ChronoSync - リアルタイム速報システム
 
-リアルタイムレース速報システム - トレイルランニング、スカイランニング、ウルトラランニングなど、あらゆる耐久競技のリアルタイム速報を提供するプラットフォーム
+[ChronoSync](https://chrono-sync.com/) - WebScorer APIと連携したリアルタイム速報プラットフォーム
 
-## 🏃‍♂️ 概要
+## 概要
 
-ChronoSyncは、WebScorer APIと連携してレース結果をリアルタイムで表示する速報システムです。
+ChronoSyncは、トレイルランニングやスカイランニングなどエンデュランス系の大会向けのリアルタイム速報システムです。WebScorerアプリを使用した手動計測のデータをリアルタイムに取得・表示し、参加者に即時の順位情報を提供します。
 
-### 主な機能
+### 背景
 
-- **リアルタイム速報**: WebScorer APIからのオンデマンドキャッシュ（3分TTL）
-- **複数競技対応**: Trail Running, Sky Running, Ultra Running, Mountain Running, Road Running, Triathlon, Cycling
-- **レスポンシブデザイン**: モバイルファーストアプローチ
-- **管理画面**: 大会・レース管理機能
-- **Docker対応**: ローカル開発環境の統一
+トレイルランニングやマラソン大会の計測は、通常計測会社に依頼しますが、高額な費用がかかります。そのため、私が関わるの大会ではWebScorerというアプリを使用して手動計測を行っています。計測会社を利用する場合でも、速報サイトは別料金が発生するため、参加者はゴール後もしばらく順位がわからないという課題がありました。
 
-## 🚀 クイックスタート
+ChronoSyncは、WebScorerのAPIを活用してデータを取得し、見やすく加工して表示することで、この課題を解決します。さらに、スポンサーロゴ掲載機能を備えることで、主催者とスポンサー双方にメリットのあるシステムを実現しています。
 
-### 前提条件
-
-- Docker & Docker Compose
-- WebScorer API ID（[WebScorer](https://www.webscorer.com)で取得）
-
-### 1. リポジトリのクローン
-
-```bash
-git clone <repository-url>
-cd chrono-sync
-```
-
-### 2. 環境変数の設定
-
-`.env.local`ファイルを作成：
-
-```bash
-# システム設定
-NEXT_PUBLIC_SITE_NAME=ChronoSync
-NEXT_PUBLIC_SITE_DESCRIPTION=Real-time race results synchronization platform
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-
-# 認証設定
-ADMIN_USERNAME=chronosync-admin
-ADMIN_PASSWORD=ChronoSync2024!
-JWT_SECRET=your-jwt-secret-key-here-please-change-this-in-production
-
-# KV設定（ローカル開発用）
-KV_URL=redis://localhost:6379
-NODE_ENV=development
-
-# WebScorer API設定
-WEBSCORER_API_ID=your-webscorer-api-id-here
-
-# カスタマイズ設定
-NEXT_PUBLIC_DEFAULT_ORGANIZER=Race Organization
-NEXT_PUBLIC_SUPPORT_EMAIL=support@chrono-sync.com
-NEXT_PUBLIC_BRAND_COLOR=#6366F1
-NEXT_PUBLIC_ACCENT_COLOR=#8B5CF6
-```
-
-### 3. Docker環境の起動
-
-```bash
-# 初回起動（ビルド含む）
-docker-compose up --build
-
-# 通常起動
-docker-compose up
-```
-
-### 4. アクセス
-
-- **フロントエンド**: http://localhost:3000
-- **管理画面**: http://localhost:3000/admin/login
-- **Redis**: localhost:6379
-
-## 📖 WebScorer API設定
-
-### API IDの取得方法
-
-1. [WebScorer](https://www.webscorer.com)にログイン
-2. `Organizers` → `My organizer settings`に移動
-3. `Unique organizer URL`の末尾の数字がAPI ID
-4. 例: `https://www.webscorer.com/organizer?id=86255` → API ID: `86255`
-
-### API仕様
-
-- **エンドポイント**: `https://www.webscorer.com/json/race?raceid={raceId}&apiid={apiId}`
-- **認証**: API ID（クエリパラメータ）
-- **レスポンス**: JSON形式
-- **制限**: PRO Results subscription必須
-
-詳細: [WebScorer JSON API Documentation](https://www.webscorer.com/blog/post/2021/09/28/how-to-access-race-data-via-json-api)
-
-## 🏗️ アーキテクチャ
-
-### 技術スタック
-
-- **フレームワーク**: Next.js 14 (Pages Router)
-- **言語**: TypeScript
-- **スタイリング**: Tailwind CSS
-- **データベース**: Redis (ローカル) / Vercel KV (本番)
-- **認証**: JWT + HttpOnly Cookie
-- **状態管理**: SWR
-
-### ディレクトリ構造
-
-```
-chrono-sync/
-├── components/          # Reactコンポーネント
-│   ├── common/         # 共通コンポーネント
-│   ├── layout/         # レイアウトコンポーネント
-│   └── race/           # レース関連コンポーネント
-├── hooks/              # カスタムフック
-├── lib/                # ユーティリティライブラリ
-├── pages/              # Next.js Pages Router
-│   ├── api/           # API Routes
-│   ├── admin/         # 管理画面
-│   └── events/        # 大会・レース画面
-├── styles/             # スタイルシート
-└── types/              # TypeScript型定義
-```
-
-### オンデマンドキャッシュ
-
-```typescript
-// キャッシュフロー
-1. キャッシュ確認（TTL: 3分）
-2. 有効 → 即返却（API呼び出しなし）
-3. 期限切れ → WebScorer API呼び出し
-4. 新データをキャッシュ保存
-5. クライアントに返却
-```
-
-## 🔧 開発
-
-### ローカル開発
-
-```bash
-# 開発サーバー起動
-docker-compose up
-
-# ログ確認
-docker-compose logs -f app
-
-# Redis CLI接続
-docker-compose exec redis redis-cli
-```
-
-### 型チェック・リント
-
-```bash
-# コンテナ内で実行
-docker-compose exec app npm run type-check
-docker-compose exec app npm run lint
-docker-compose exec app npm run build
-```
-
-### デバッグ
-
-- **アプリケーションログ**: `docker-compose logs app`
-- **Redisデータ確認**: `docker-compose exec redis redis-cli`
-- **キャッシュキー**: `race:{raceId}:results`, `race:{raceId}:timestamp`
-
-## 📱 使用方法
-
-### フロントエンド
-
-1. **ホーム**: 大会ハイライト表示
-2. **大会一覧**: 全大会の一覧・フィルタリング
-3. **レース結果**: リアルタイム結果表示・手動更新
+## スクリーンショット
 
 ### 管理画面
 
-1. **ログイン**: `/admin/login`（環境変数の認証情報）
-2. **ダッシュボード**: 統計情報・クイック管理
-3. **大会管理**: 大会の作成・編集・削除
-4. **レース管理**: レース設定・WebScorer Race ID設定
+#### ログイン
+![ログイン画面](screenshots/admin_login.png)
+シンプルで安全な管理者認証を提供します。
 
-## 🚀 本番デプロイ
+#### ダッシュボード
+![管理画面ダッシュボード](screenshots/admin_dashboard.png)
+大会とレースの一覧を表示し、各種管理機能にアクセスできます。
 
-### Vercel + Vercel KV
+#### レース作成
+![レース作成画面](screenshots/admin_create_race.png)
+WebScorer Race IDの設定やカテゴリー情報を登録できます。
 
-1. **Vercelプロジェクト作成**
-2. **Vercel KVデータベース作成**
-3. **環境変数設定**:
-   ```
-   KV_REST_API_URL=<vercel-kv-url>
-   KV_REST_API_TOKEN=<vercel-kv-token>
-   WEBSCORER_API_ID=<your-api-id>
-   ADMIN_USERNAME=<admin-username>
-   ADMIN_PASSWORD=<secure-password>
-   JWT_SECRET=<secure-jwt-secret>
-   ```
-4. **デプロイ**: `vercel --prod`
+#### レース一覧
+![レース一覧画面](screenshots/admin_race_list.png)
+登録されたレースの一覧と各種操作が可能です。
 
-## 🔒 セキュリティ
+#### カテゴリー管理
+![カテゴリー一覧画面](screenshots/admin_category_list.png)
+レースのカテゴリー設定と参加者の割り当てができます。
 
-- **認証**: 環境変数ベースの認証情報
-- **JWT**: HttpOnly Cookie + 7日間有効期限
-- **API**: 入力検証・エラーハンドリング
-- **CORS**: 適切なオリジン制限
+#### キャッシュ設定
+![キャッシュ設定画面](screenshots/admin_cache_setting.png)
+レースの状況に応じたキャッシュ制御が可能です。
 
-## 📊 パフォーマンス
+## 主な機能
 
-- **初期表示**: 1秒以内
-- **データ更新**: 3秒以内
-- **キャッシュ**: 3分TTL（手動更新可能）
-- **ISR**: 静的生成 + オンデマンド更新
+### 1. リアルタイム速報表示
+- カテゴリー別の順位表示
+- 詳細な記録情報（タイム、差、年代別順位など）
+- レスポンシブデザインによるマルチデバイス対応
+- キャッシュ制御
+  - レース進行中: 3分間のTTLキャッシュ
+  - レース完了後: 30日間の長期キャッシュ
+  - 手動更新機能で即時反映も可能
+screenshot
+### 2. Excel出力機能
+- カテゴリー別の結果出力
+- 会場での掲示用フォーマット
+- カスタマイズ可能なレイアウト
 
-## 🤝 コントリビューション
+### 3. スポンサー管理
+- スポンサーロゴの表示
+- クリック計測機能
+- 露出効果の分析
 
-1. フォーク
-2. フィーチャーブランチ作成
-3. 変更をコミット
-4. プルリクエスト作成
+## キャッシュ戦略
 
-## 📄 ライセンス
+ChronoSyncは、APIプロバイダーへの負荷を最小限に抑えるキャッシュ制御をしています：
 
-MIT License
+### キャッシュ制御
+- **レース進行中**
+  - 3分間のTTLキャッシュ
+  - 手動更新ボタンで即時更新可能
+  - SWRによるクライアントサイドキャッシュ
 
-## 🆘 サポート
+- **レース完了後**
+  - 30日間の長期キャッシュ
+  - データの永続性を確保
+  - ストレージコストの最適化
 
-- **Email**: support@chrono-sync.com
-- **Issues**: GitHubのIssues
-- **Documentation**: [WebScorer API Docs](https://www.webscorer.com/blog/post/2021/09/28/how-to-access-race-data-via-json-api)
+### 更新制御
+- オンデマンド方式の採用
+- 必要なときのみAPIを呼び出し
+- バックグラウンド更新の抑制
 
----
+## 利用の流れ
 
-**ChronoSync** - リアルタイム速報で、レースの感動をその瞬間に。
+1. **大会設定**
+   - 管理画面で大会を作成
+   - 基本情報（大会名、日時、場所など）を設定
+   - スポンサー情報を登録（オプション）
+
+2. **レース設定**
+   - 大会内にレースを作成
+   - カテゴリー情報を設定
+   - WebScorer Race IDを登録
+   - キャッシュ設定のカスタマイズ（オプション）
+
+3. **速報表示**
+   - 参加者がURLにアクセス
+   - リアルタイムで順位を確認
+   - カテゴリー別に結果を表示
+   - 必要に応じて手動更新
+
+4. **結果出力**
+   - 必要に応じてExcel形式で出力
+   - 会場での掲示用に印刷
+   - カテゴリー別に整理された結果を活用
+
+## 技術スタック
+
+- **フロントエンド**: Next.js + TypeScript
+- **スタイリング**: Tailwind CSS
+- **データストア**: 
+  - 速報データ: Redis on Vercel KV
+  - スポンサー情報: microCMS
+- **デプロイ**: Vercel
+- **API連携**: 
+  - WebScorer API
+  - microCMS API
