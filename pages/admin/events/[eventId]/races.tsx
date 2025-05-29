@@ -10,6 +10,7 @@ import Button from '@/components/common/button';
 import LoadingSpinner from '@/components/common/loading-spinner';
 import ErrorMessage from '@/components/common/error-message';
 import RaceForm from '@/components/admin/race-form';
+import { RaceExportButton } from '@/components/admin/race-export-button';
 import { SITE_CONFIG } from '@/lib/constants';
 import { fetcher } from '@/lib/api';
 import { Event, Race, RaceFormData } from '@/types';
@@ -399,8 +400,13 @@ export default function AdminEventRacesPage(): JSX.Element {
                             {getStatusLabel(race.status)}
                           </span>
                         </td>
-                        <td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-wrap gap-1">
+                            <RaceExportButton
+                              raceId={race.id}
+                              raceName={race.name}
+                              className="mr-1"
+                            />
                             <Button
                               variant="secondary"
                               size="sm"
