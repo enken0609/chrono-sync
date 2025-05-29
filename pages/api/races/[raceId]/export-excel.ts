@@ -1,7 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import ExcelJS from 'exceljs';
-import { kv } from '@/lib/kv';
-import { WebScorerResponse, WebScorerRacer, WebScorerGrouping } from '@/types';
+import { 
+  createSuccessResponse, 
+  handleApiError,
+  getRequiredQueryParam,
+  createTimestamp,
+  calculateCacheAge
+} from '@/lib/api';
+import { kv, kvJson } from '@/lib/kv';
+import { KV_KEYS } from '@/lib/constants';
+import { WebScorerResponse, WebScorerRacer, WebScorerGrouping, Race } from '@/types';
 
 // 性別を日本語に変換する関数
 function translateGender(gender: string | undefined): string {
@@ -120,90 +128,29 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: 'メソッドが許可されていません'
-    });
+    return res.status(405).json(handleApiError(new Error('メソッドが許可されていません')));
   }
 
   try {
-    const { raceId } = req.query;
+    const raceId = getRequiredQueryParam(req.query, 'raceId');
+
+    // レース設定を取得してWebScorer Race IDを確認
+    const raceConfig = await kvJson.get<Race>(KV_KEYS.raceConfig(raceId));
     
-    if (!raceId || typeof raceId !== 'string') {
-      console.error('無効なraceId:', raceId);
-      return res.status(400).json({
-        success: false,
-        error: '無効なレースIDです'
-      });
+    if (!raceConfig) {
+      return res.status(404).json(handleApiError(new Error('レースが見つかりません')));
     }
 
-    console.log('KVからデータ取得開始 - raceId:', raceId);
-    
-    // KVからレース結果とレース情報を取得
-    let raceResultsJson: string | null;
-    try {
-      raceResultsJson = await kv.get(`race:${raceId}:results`);
-      console.log('KVからのレース結果取得成功');
-    } catch (kvError) {
-      console.error('KVからのレース結果取得エラー:', kvError);
-      return res.status(500).json({
-        success: false,
-        error: 'レース結果の取得に失敗しました'
-      });
-    }
+    // キャッシュキーの生成
+    const cacheKey = KV_KEYS.raceResults(raceId);
+    const timestampKey = KV_KEYS.raceTimestamp(raceId);
 
-    let raceConfigJson: string | null;
-    try {
-      raceConfigJson = await kv.get(`race:${raceId}:config`);
-      console.log('KVからのレース設定取得成功');
-    } catch (kvError) {
-      console.error('KVからのレース設定取得エラー:', kvError);
-      raceConfigJson = null; // 設定は必須ではないので続行
-    }
-    
-    if (!raceResultsJson) {
-      console.error(`レース結果が見つかりません。raceId: ${raceId}`);
-      return res.status(404).json({
-        success: false,
-        error: 'レース結果が見つかりません'
-      });
-    }
+    // キャッシュからデータを取得
+    const raceResults = await kvJson.get<WebScorerResponse>(cacheKey);
+    const cacheTimestamp = await kv.get(timestampKey);
 
-    // 文字列をJSONとしてパース
-    let raceResults: WebScorerResponse;
-    try {
-      console.log('レース結果データのパース開始');
-      raceResults = JSON.parse(raceResultsJson) as WebScorerResponse;
-      console.log('レース結果データのパース成功');
-    } catch (parseError) {
-      console.error('レース結果データのパースエラー:', parseError);
-      return res.status(500).json({
-        success: false,
-        error: 'レース結果データの形式が不正です'
-      });
-    }
-
-    let raceConfig = null;
-    if (raceConfigJson) {
-      try {
-        raceConfig = JSON.parse(raceConfigJson);
-        console.log('レース設定データのパース成功');
-      } catch (parseError) {
-        console.error('レース設定データのパースエラー:', parseError);
-        // 設定は必須ではないので続行
-      }
-    }
-
-    const raceName = raceConfig ? raceConfig.name : raceResults.RaceInfo?.Name || 'Unknown Race';
-    const timestamp = new Date().toLocaleString('ja-JP');
-
-    // データ構造の検証
-    if (!raceResults.Results || !Array.isArray(raceResults.Results)) {
-      console.error('不正なレース結果データ構造:', raceResults);
-      return res.status(500).json({
-        success: false,
-        error: 'レース結果データの構造が不正です'
-      });
+    if (!raceResults) {
+      return res.status(404).json(handleApiError(new Error('レース結果が見つかりません')));
     }
 
     // カテゴリー別結果の確認
@@ -213,11 +160,7 @@ export default async function handler(
     
     console.log(`カテゴリー数: ${categoryGroups.length}`);
     if (categoryGroups.length === 0) {
-      console.error('カテゴリーが見つかりません');
-      return res.status(400).json({
-        success: false,
-        error: 'カテゴリーデータが見つかりません'
-      });
+      return res.status(400).json(handleApiError(new Error('カテゴリーデータが見つかりません')));
     }
 
     // Excelワークブックを作成
@@ -238,8 +181,8 @@ export default async function handler(
       const sheet = createAndSetupWorksheet(
         workbook,
         sheetName,
-        `${raceName} - ${categoryName} 【速報】`,
-        timestamp
+        `${raceConfig.name} - ${categoryName} 【速報】`,
+        new Date().toLocaleString('ja-JP')
       );
       addDataAndStyle(sheet, group.Racers);
     });
@@ -263,15 +206,6 @@ export default async function handler(
 
   } catch (error) {
     console.error('Excel出力エラー:', error);
-    const err = error as Error;
-    console.error('エラーの詳細:', {
-      name: err.name,
-      message: err.message,
-      stack: err.stack
-    });
-    res.status(500).json({
-      success: false,
-      error: 'Excel出力中にエラーが発生しました'
-    });
+    return res.status(500).json(handleApiError(error));
   }
 } 
