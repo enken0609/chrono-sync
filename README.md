@@ -1,6 +1,6 @@
 # ChronoSync - リアルタイム速報システム
 
-[ChronoSync](https://chrono-sync.com/) - WebScorer APIと連携したリアルタイム速報プラットフォーム
+ChronoSync - WebScorer APIと連携したリアルタイム速報プラットフォーム
 
 ## 概要
 
