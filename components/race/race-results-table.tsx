@@ -30,8 +30,11 @@ export default function RaceResultsTable({
     );
   }
 
-  // Overallグループを除外
-  const filteredGroups = (results || []).filter(group => !group.Grouping.Overall);
+  // カテゴリー別の結果のみを表示（Overallは除外）
+  const filteredGroups = (results || []).filter(group => 
+    group.Grouping.Category != null
+  );
+
   const selectedGroup = filteredGroups[selectedGroupIndex];
 
   if (filteredGroups.length === 0) {
@@ -145,22 +148,16 @@ export default function RaceResultsTable({
 }
 
 /**
- * グループの表示名を生成（Overallを除外）
+ * グループの表示名を生成（カテゴリー優先）
  */
 function getGroupDisplayName(group: WebScorerGrouping): string {
   const { Grouping } = group;
   
+  // カテゴリー名を優先表示
   if (Grouping.Category) {
     return Grouping.Category;
   }
   
-  if (Grouping.Gender) {
-    return Grouping.Gender;
-  }
-  
-  if (Grouping.Distance) {
-    return Grouping.Distance;
-  }
-  
+  // 通常ここには到達しないはず（フィルタリングでカテゴリーのみに制限）
   return 'その他';
 } 
