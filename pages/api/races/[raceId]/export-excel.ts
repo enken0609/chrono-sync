@@ -83,12 +83,25 @@ function createAndSetupWorksheet(
 }
 
 // データを追加してスタイルを適用する関数
-function addDataAndStyle(worksheet: ExcelJS.Worksheet, results: WebScorerRacer[]) {
+function addDataAndStyle(
+  worksheet: ExcelJS.Worksheet, 
+  results: WebScorerRacer[],
+  topNBibs: string[]
+) {
   const startRow = 5; // データの開始行
 
   // データの追加
   results.forEach((result: WebScorerRacer, index: number) => {
     const rowNumber = startRow + index;
+    
+    // 年代別順位の計算式を設定
+    let ageGroupRankFormula = '';
+    if (result.Place === 'DNF' || result.Place === 'DNS' || result.Place === 'DSQ' || result.Place === '-') {
+      ageGroupRankFormula = '""'; // 空文字を設定
+    } else {
+      // 同じ年代の出現回数をカウント
+      ageGroupRankFormula = `COUNTIFS($G$${startRow}:$G${rowNumber},$G${rowNumber})`;
+    }
     
     // 行を追加
     const dataRow = worksheet.addRow([
@@ -99,7 +112,7 @@ function addDataAndStyle(worksheet: ExcelJS.Worksheet, results: WebScorerRacer[]
       translateGender(result.Gender),
       result.Age || '',
       { formula: `IF(F${rowNumber}<=20,"20歳以下",IF(F${rowNumber}<=39,"30代",IF(F${rowNumber}<=49,"40代",IF(F${rowNumber}<=59,"50代",IF(F${rowNumber}<=69,"60代","70歳以上")))))` },
-      { formula: `COUNTIFS($G$${startRow}:$G${rowNumber},$G${rowNumber},$E$${startRow}:$E${rowNumber},$E${rowNumber})` },
+      { formula: ageGroupRankFormula },
       result.Time,
       result.Difference || ''
     ]);
@@ -153,38 +166,37 @@ export default async function handler(
       return res.status(404).json(handleApiError(new Error('レース結果が見つかりません')));
     }
 
-    // カテゴリー別結果の確認
+    // カテゴリー別の結果のみを抽出（Overallは除外）
     const categoryGroups = raceResults.Results.filter(group => 
-      group.Grouping?.Category && !group.Grouping.Overall
+      group.Grouping.Category != null
     );
-    
-    console.log(`カテゴリー数: ${categoryGroups.length}`);
+
+    // グループが見つからない場合はエラー
     if (categoryGroups.length === 0) {
-      return res.status(400).json(handleApiError(new Error('カテゴリーデータが見つかりません')));
+      return res.status(400).json(handleApiError(new Error('カテゴリー別データが見つかりません')));
     }
 
     // Excelワークブックを作成
     console.log('Excelワークブック作成開始');
     const workbook = new ExcelJS.Workbook();
 
-    // カテゴリー別結果のシートを作成
-    categoryGroups.forEach((group: WebScorerGrouping) => {
-      const categoryName = group.Grouping?.Category || '不明';
-      console.log(`シート作成: ${categoryName}, レーサー数: ${group.Racers?.length || 0}`);
+    // カテゴリー別のシートを作成
+    categoryGroups.forEach(group => {
+      // シート名を生成（31文字制限に注意）
+      const baseSheetName = group.Grouping.Category || 'その他';
+      const sheetName = baseSheetName.length > 31 ? baseSheetName.substring(0, 28) + '...' : baseSheetName;
       
-      if (!group.Racers || !Array.isArray(group.Racers)) {
-        console.error(`不正なレーサーデータ - カテゴリー: ${categoryName}`);
-        return;
-      }
+      console.log(`シート作成: ${sheetName}, レーサー数: ${group.Racers.length}`);
 
-      const sheetName = categoryName.length > 31 ? categoryName.substring(0, 28) + '...' : categoryName;
       const sheet = createAndSetupWorksheet(
         workbook,
         sheetName,
-        `${raceConfig.name} - ${categoryName} 【速報】`,
+        `${raceConfig.name} - ${baseSheetName} 【速報】`,
         new Date().toLocaleString('ja-JP')
       );
-      addDataAndStyle(sheet, group.Racers);
+
+      // データを追加
+      addDataAndStyle(sheet, group.Racers, []);
     });
 
     // Excelファイルを生成
