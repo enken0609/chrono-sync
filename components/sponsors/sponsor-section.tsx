@@ -142,7 +142,7 @@ export const SponsorSection: React.FC<SponsorSectionProps> = ({
     // スクロール速度をデバイスに最適化
     const isMobile = window.innerWidth < 768;
     const desktopCleanup = startAutoScroll(scrollRef.current, isMobile ? 0.5 : 0.6);
-    const mobileCleanup = startAutoScroll(mobileScrollRef.current, 0.4);
+    const mobileCleanup = startAutoScroll(mobileScrollRef.current, 0.6);
 
     return () => {
       desktopCleanup();
