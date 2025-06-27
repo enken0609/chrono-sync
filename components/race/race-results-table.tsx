@@ -10,7 +10,7 @@ interface RaceResultsTableProps {
 }
 
 /**
- * レース結果テーブルコンポーネント（スマホ対応）
+ * レース結果テーブルコンポーネント（スマホ対応・年齢表示対応）
  */
 export default function RaceResultsTable({
   results,
@@ -72,13 +72,13 @@ export default function RaceResultsTable({
         </div>
       )}
 
-      {/* 結果表示（コンパクトカード形式） */}
+      {/* 結果表示（年齢表示対応・コンパクトカード形式） */}
       <div className="space-y-2">
         {selectedGroup?.Racers.map((racer, index) => (
           <div key={`${racer.Bib}-${index}`} className="card">
             <div className="card-body p-3">
               <div className="flex items-center justify-between">
-                {/* 左側：順位、ゼッケン、名前 */}
+                {/* 左側：順位、ゼッケン、名前、年齢 */}
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
                   <div className="flex-shrink-0">
                     <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
@@ -99,6 +99,11 @@ export default function RaceResultsTable({
                     </div>
                     <div className="font-medium text-gray-900 text-sm truncate">
                       {racer.Name}
+                      {racer.Age && (
+                        <span className="text-gray-500 font-normal ml-1">
+                          ({racer.Age})
+                        </span>
+                      )}
                     </div>
                     {racer.TeamName && (
                       <div className="text-xs text-gray-500 mt-1 truncate">
